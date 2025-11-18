@@ -19,9 +19,14 @@ export default function Login() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log("Login:", email, password);
-        // TODO: 呼叫後端 Login API
-        navigate("/");
+
+        // 暫時先用假登入（有填就算成功）
+        if (email && password) {
+            console.log("Fake Login Success");
+            navigate("/dashboard");   // ← 跳到 dashboard
+        } else {
+            console.log("Missing fields");
+        }
     };
 
     return (
@@ -29,8 +34,8 @@ export default function Login() {
             sx={{
                 height: "100vh",
                 display: "flex",
-                justifyContent: "center", // 水平置中
-                alignItems: "center",      // 垂直置中
+                justifyContent: "center",
+                alignItems: "center",
                 backgroundColor: "#fafafa",
             }}
         >
