@@ -14,23 +14,29 @@ import { useNavigate } from "react-router-dom";
 export default function Signup() {
     const navigate = useNavigate();
 
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPwd, setConfirmPwd] = useState("");
 
-    const [pwdError, setPwdError] = useState(""); // 用來顯示錯誤訊息
+    const [pwdError, setPwdError] = useState("");
 
     const handleSignup = (e) => {
         e.preventDefault();
 
-        // 檢查兩次密碼是否一致
+        // 確認密碼一致
         if (password !== confirmPwd) {
             setPwdError("Passwords do not match.");
             return;
         }
 
-        setPwdError(""); // 清除錯誤
-        console.log("Signup:", email, password);
+        setPwdError("");
+
+        console.log("Signup:", {
+            username,
+            email,
+            password,
+        });
 
         // TODO: 呼叫後端 API
 
@@ -64,6 +70,17 @@ export default function Signup() {
                     </Typography>
 
                     <Box component="form" onSubmit={handleSignup} sx={{ mt: 1 }}>
+                        {/* Username */}
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            required
+                            label="Username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                        />
+
+                        {/* Email */}
                         <TextField
                             fullWidth
                             margin="normal"
@@ -73,6 +90,7 @@ export default function Signup() {
                             onChange={(e) => setEmail(e.target.value)}
                         />
 
+                        {/* Password */}
                         <TextField
                             fullWidth
                             margin="normal"
@@ -83,6 +101,7 @@ export default function Signup() {
                             onChange={(e) => setPassword(e.target.value)}
                         />
 
+                        {/* Confirm Password */}
                         <TextField
                             fullWidth
                             margin="normal"
@@ -90,8 +109,8 @@ export default function Signup() {
                             label="Confirm Password"
                             type="password"
                             value={confirmPwd}
-                            error={pwdError !== ""}       // 錯誤時變紅
-                            helperText={pwdError}         // 錯誤訊息
+                            error={pwdError !== ""}
+                            helperText={pwdError}
                             onChange={(e) => setConfirmPwd(e.target.value)}
                         />
 

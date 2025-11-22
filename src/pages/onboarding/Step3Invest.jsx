@@ -32,6 +32,14 @@ export default function Step3Invest() {
         const newRows = [...rows];
         newRows[i][key] = value;
         setRows(newRows);
+
+        const newTotal = newRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+
+        if (newTotal > availableMoney) {
+            setError("Your investment amount exceeds available balance!");
+        } else {
+            setError("");
+        }
     };
 
     const handleNext = () => {
@@ -41,11 +49,12 @@ export default function Step3Invest() {
         }
 
         setError("");
-
-        // TODO: 送出資料
         console.log("Step3 Investments:", rows);
-
         navigate("/onboarding/step4");
+    };
+
+    const handleBack = () => {
+        navigate("/onboarding/step2");
     };
 
     return (
@@ -65,34 +74,52 @@ export default function Step3Invest() {
 
                 {error && <Alert severity="warning" sx={{ mb: 2 }}>{error}</Alert>}
 
-                {rows.map((row, idx) => (
-                    <Box sx={{ display: "flex", gap: 2, mb: 2 }} key={idx}>
-                        <TextField
-                            select
-                            label="Investment Type"
-                            fullWidth
-                            value={row.type}
-                            onChange={(e) => updateRow(idx, "type", e.target.value)}
+                {rows.map((row, idx) => {
+                    const percent =
+                        availableMoney > 0 && Number(row.amount) > 0
+                            ? ((Number(row.amount) / availableMoney) * 100).toFixed(1)
+                            : "—";
+
+                    return (
+                        <Box
+                            sx={{ display: "flex", gap: 2, alignItems: "center", mb: 2 }}
+                            key={idx}
                         >
-                            <MenuItem value="stocks">Stocks</MenuItem>
-                            <MenuItem value="etf">ETF</MenuItem>
-                            <MenuItem value="crypto">Crypto</MenuItem>
-                            <MenuItem value="fund">Fund</MenuItem>
-                        </TextField>
+                            {/* 投資種類 */}
+                            <TextField
+                                select
+                                label="Investment Type"
+                                fullWidth
+                                value={row.type}
+                                onChange={(e) => updateRow(idx, "type", e.target.value)}
+                            >
+                                <MenuItem value="stocks">Stocks</MenuItem>
+                                <MenuItem value="etf">ETF</MenuItem>
+                                <MenuItem value="crypto">Crypto</MenuItem>
+                                <MenuItem value="fund">Fund</MenuItem>
+                            </TextField>
 
-                        <TextField
-                            type="number"
-                            label="Amount"
-                            fullWidth
-                            value={row.amount}
-                            onChange={(e) => updateRow(idx, "amount", e.target.value)}
-                        />
+                            {/* 金額輸入 */}
+                            <TextField
+                                type="number"
+                                label="Amount"
+                                fullWidth
+                                value={row.amount}
+                                onChange={(e) => updateRow(idx, "amount", e.target.value)}
+                            />
 
-                        <IconButton color="error" onClick={() => deleteRow(idx)}>
-                            <DeleteIcon />
-                        </IconButton>
-                    </Box>
-                ))}
+                            {/* 百分比 (%) 顯示 */}
+                            <Typography sx={{ width: 60, textAlign: "center" }}>
+                                {percent}%
+                            </Typography>
+
+                            {/* 刪除 */}
+                            <IconButton color="error" onClick={() => deleteRow(idx)}>
+                                <DeleteIcon />
+                            </IconButton>
+                        </Box>
+                    );
+                })}
 
                 <Button startIcon={<AddIcon />} onClick={addRow} variant="contained">
                     Add Investment
@@ -102,14 +129,23 @@ export default function Step3Invest() {
                     Total Investment: {totalInvest}
                 </Typography>
 
-                <Button
-                    fullWidth
-                    variant="contained"
-                    sx={{ mt: 3 }}
-                    onClick={handleNext}
+                {/* Back / Next 按鈕 */}
+                <Box
+                    sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        mt: 4,
+                    }}
                 >
-                    Next
-                </Button>
+                    <Button variant="outlined" fullWidth onClick={handleBack}>
+                        Back
+                    </Button>
+
+                    <Button variant="contained" fullWidth onClick={handleNext}>
+                        Next
+                    </Button>
+                </Box>
             </Container>
         </Box>
     );

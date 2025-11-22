@@ -20,10 +20,10 @@ export default function Login() {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // 暫時先用假登入（有填就算成功）
+        // 暫時先用假登入（有填就算成功），之後接後端要判斷有沒有基本資料了，有直接進 dashboard，沒有就要接 onboarding
         if (email && password) {
             console.log("Fake Login Success");
-            navigate("/dashboard");   // ← 跳到 dashboard
+            navigate("/dashboard");
         } else {
             console.log("Missing fields");
         }
