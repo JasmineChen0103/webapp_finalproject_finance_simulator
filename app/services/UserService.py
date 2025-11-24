@@ -1,13 +1,13 @@
 from typing import Optional
 
 try:
-    from ..models.UserReq import UserLoginReq, UserRegisterReq
+    from ..models.UserReq import UserLoginReq, UserRegisterReq, UserModifyPasswordReq
     from ..models.UserResp import UserLoginResp
-    from ..database.UserDB import create, login
+    from ..database.UserDB import create, login, modify_password
 except ImportError:  # Allow running without package context
-    from models.UserReq import UserLoginReq, UserRegisterReq  # type: ignore
+    from models.UserReq import UserLoginReq, UserRegisterReq, UserModifyPasswordReq  # type: ignore
     from models.UserResp import UserLoginResp  # type: ignore
-    from database.UserDB import create, login  # type: ignore
+    from database.UserDB import create, login, modify_password  # type: ignore
 
 
 def user_register(request: UserRegisterReq) -> bool:
@@ -30,3 +30,11 @@ def user_login(request: UserLoginReq) -> Optional[UserLoginResp]:
         user_id=int(user_id),
         email=str(email),
     )
+
+def user_modify_password(request: UserModifyPasswordReq) -> bool:
+    user_record = login(request.email)
+    if not user_record:
+        return False
+    if user_record.get("password") != request.old_password:
+        return False
+    return modify_password(request.user_id, request.new_password)

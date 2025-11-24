@@ -75,6 +75,20 @@ def check_duplicate(email: str, client: Optional[MongoClient] = None) -> bool:
         if owns_client:
             client.close()
 
+def modify_password(user_id: int, new_password: str) -> bool:
+    client = get_db_client()
+    if client is None:
+        return False
+
+    try:
+        collection = _get_db(client)["Users"]
+        result = collection.update_one(
+            {"user_id": user_id},
+            {"$set": {"password": new_password}}
+        )
+        return result.modified_count > 0
+    finally:
+        client.close()
 
 def login(email: str) -> Optional[Dict[str, Any]]:
     client = get_db_client()
