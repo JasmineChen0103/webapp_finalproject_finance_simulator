@@ -6,65 +6,106 @@ import {
     Button,
     Divider,
     TextField,
-    IconButton
+    IconButton,
+    FormControlLabel,
+    Checkbox
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 export default function Settings() {
     /** -------------------------
-     *  假資料（正式版從後端拿）
+     * 假資料（正式版從後端拿）
      -------------------------- */
     const [basicInfo, setBasicInfo] = useState({
         totalAsset: 100000,
-        monthlyIncome: 50000
+        monthlyIncome: 50000,
     });
 
     const [expenses, setExpenses] = useState([
         { category: "Food", amount: 5000 },
-        { category: "Transport", amount: 2000 }
+        { category: "Transport", amount: 2000 },
     ]);
 
     const [investments, setInvestments] = useState([
         { type: "Stocks", amount: 10000 },
-        { type: "ETF", amount: 5000 }
+        { type: "ETF", amount: 5000 },
     ]);
 
+    // investment risk settings
+    const [returnSetting, setReturnSetting] = useState({
+        fixed: "",
+        riskHigh: false,
+        riskLow: false,
+    });
+
     /** -------------------------
-     *  Editing flags
+     * Draft States (edit mode)
      -------------------------- */
     const [editBasic, setEditBasic] = useState(false);
     const [editExpenses, setEditExpenses] = useState(false);
     const [editInvestments, setEditInvestments] = useState(false);
 
-    /** -------------------------
-     *  Draft states（編輯中用）
-     -------------------------- */
     const [draftBasic, setDraftBasic] = useState(basicInfo);
     const [draftExpenses, setDraftExpenses] = useState(expenses);
     const [draftInvestments, setDraftInvestments] = useState(investments);
+    const [draftRisk, setDraftRisk] = useState(returnSetting);
 
     /** -------------------------
-     *  Error states
+     * Error States
      -------------------------- */
     const [expenseError, setExpenseError] = useState("");
     const [investError, setInvestError] = useState("");
+    const [riskError, setRiskError] = useState("");
 
     /** -------------------------
-     *  計算邏輯
+     * 計算邏輯
      -------------------------- */
     const totalExpenses = draftExpenses.reduce(
         (sum, r) => sum + Number(r.amount || 0),
         0
     );
 
-    const availableForInvest =
-        draftBasic.monthlyIncome - totalExpenses;
+    const availableForInvest = draftBasic.monthlyIncome - totalExpenses;
 
     const totalInvestments = draftInvestments.reduce(
         (sum, r) => sum + Number(r.amount || 0),
         0
     );
+
+    /** -------------------------
+     * Risk setting toggles
+     -------------------------- */
+
+    const handleFixedChange = (v) => {
+        setDraftRisk({
+            fixed: v,
+            riskHigh: false,
+            riskLow: false,
+        });
+    };
+
+    const toggleHigh = () => {
+        const val = !draftRisk.riskHigh;
+        setDraftRisk({
+            fixed: "",
+            riskHigh: val,
+            riskLow: false,
+        });
+    };
+
+    const toggleLow = () => {
+        const val = !draftRisk.riskLow;
+        setDraftRisk({
+            fixed: "",
+            riskHigh: false,
+            riskLow: val,
+        });
+    };
+
+    /** ======================================================
+     *  ⬇⬇⬇ COMPONENT RETURN (UI) ⬇⬇⬇
+     ====================================================== */
 
     return (
         <Box sx={{ p: 4 }}>
@@ -101,10 +142,7 @@ export default function Settings() {
                             sx={{ mt: 1 }}
                             value={draftBasic.totalAsset}
                             onChange={(e) =>
-                                setDraftBasic({
-                                    ...draftBasic,
-                                    totalAsset: Number(e.target.value)
-                                })
+                                setDraftBasic({ ...draftBasic, totalAsset: Number(e.target.value) })
                             }
                         />
 
@@ -116,7 +154,7 @@ export default function Settings() {
                             onChange={(e) =>
                                 setDraftBasic({
                                     ...draftBasic,
-                                    monthlyIncome: Number(e.target.value)
+                                    monthlyIncome: Number(e.target.value),
                                 })
                             }
                         />
@@ -200,7 +238,9 @@ export default function Settings() {
                                         );
 
                                         if (newTotal > draftBasic.monthlyIncome) {
-                                            setExpenseError("Total expenses exceed monthly income!");
+                                            setExpenseError(
+                                                "Total expenses exceed monthly income!"
+                                            );
                                         } else {
                                             setExpenseError("");
                                         }
@@ -231,7 +271,7 @@ export default function Settings() {
                             onClick={() =>
                                 setDraftExpenses([
                                     ...draftExpenses,
-                                    { category: "", amount: "" }
+                                    { category: "", amount: "" },
                                 ])
                             }
                         >
@@ -273,21 +313,33 @@ export default function Settings() {
                             <Typography key={i}>
                                 {inv.type}: {inv.amount} (
                                 {(
-                                    (inv.amount /
-                                        (basicInfo.monthlyIncome -
-                                            expenses.reduce((s, r) => s + r.amount, 0))) *
+                                    (inv.amount / availableForInvest) *
                                     100
-                                ).toFixed(1)}%)
+                                ).toFixed(1)}
+                                %)
                             </Typography>
                         ))}
+
+                        <Typography sx={{ mt: 2 }}>
+                            Return Setting:
+                            {returnSetting.fixed
+                                ? ` Fixed ${returnSetting.fixed}%`
+                                : returnSetting.riskHigh
+                                    ? " High Risk"
+                                    : returnSetting.riskLow
+                                        ? " Low Risk"
+                                        : " —"}
+                        </Typography>
 
                         <Button
                             variant="outlined"
                             sx={{ mt: 1 }}
                             onClick={() => {
                                 setDraftInvestments(investments);
+                                setDraftRisk(returnSetting);
                                 setEditInvestments(true);
                                 setInvestError("");
+                                setRiskError("");
                             }}
                         >
                             Edit
@@ -295,6 +347,7 @@ export default function Settings() {
                     </>
                 ) : (
                     <>
+                        {/* 投資列表編輯 */}
                         {draftInvestments.map((inv, i) => (
                             <Box sx={{ display: "flex", gap: 2, mt: 1 }} key={i}>
                                 <TextField
@@ -323,16 +376,9 @@ export default function Settings() {
                                             0
                                         );
 
-                                        const available =
-                                            draftBasic.monthlyIncome -
-                                            draftExpenses.reduce(
-                                                (s, r) => s + Number(r.amount || 0),
-                                                0
-                                            );
-
-                                        if (totalInvest > available) {
+                                        if (totalInvest > availableForInvest) {
                                             setInvestError(
-                                                "Total investments exceed your disposable income!"
+                                                "Total investments exceed available balance!"
                                             );
                                         } else {
                                             setInvestError("");
@@ -340,10 +386,12 @@ export default function Settings() {
                                     }}
                                 />
 
-                                {/* 顯示百分比 (%) */}
                                 <Typography sx={{ minWidth: "60px", mt: 1 }}>
                                     {availableForInvest > 0
-                                        ? `${((inv.amount / availableForInvest) * 100).toFixed(1)}%`
+                                        ? `${(
+                                            (inv.amount / availableForInvest) *
+                                            100
+                                        ).toFixed(1)}%`
                                         : "—"}
                                 </Typography>
 
@@ -359,6 +407,7 @@ export default function Settings() {
                             </Box>
                         ))}
 
+                        {/* 顯示投資錯誤 */}
                         {investError && (
                             <Typography color="error" sx={{ mt: 1 }}>
                                 {investError}
@@ -371,20 +420,65 @@ export default function Settings() {
                             onClick={() =>
                                 setDraftInvestments([
                                     ...draftInvestments,
-                                    { type: "", amount: "" }
+                                    { type: "", amount: "" },
                                 ])
                             }
                         >
                             Add Investment
                         </Button>
 
-                        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                        {/* ---------------- 風險設定 ---------------- */}
+                        <Typography variant="h6" sx={{ mt: 3 }}>
+                            Risk / Return Setting
+                        </Typography>
+
+                        <TextField
+                            label="Fixed Annual Return (%)"
+                            type="number"
+                            fullWidth
+                            sx={{ mt: 2 }}
+                            value={draftRisk.fixed}
+                            disabled={draftRisk.riskHigh || draftRisk.riskLow}
+                            onChange={(e) => handleFixedChange(e.target.value)}
+                            placeholder="e.g., 5"
+                        />
+
+                        <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={draftRisk.riskHigh}
+                                        onChange={toggleHigh}
+                                    />
+                                }
+                                label="High Risk (random)"
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={draftRisk.riskLow}
+                                        onChange={toggleLow}
+                                    />
+                                }
+                                label="Low Risk (random)"
+                            />
+                        </Box>
+
+                        {riskError && (
+                            <Typography color="error" sx={{ mt: 1 }}>
+                                {riskError}
+                            </Typography>
+                        )}
+
+                        {/* Save / Cancel */}
+                        <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
                             <Button
                                 variant="contained"
                                 fullWidth
                                 disabled={Boolean(investError)}
                                 onClick={() => {
                                     setInvestments(draftInvestments);
+                                    setReturnSetting(draftRisk);
                                     setEditInvestments(false);
                                 }}
                             >
@@ -401,7 +495,6 @@ export default function Settings() {
                         </Box>
                     </>
                 )}
-
             </Container>
         </Box>
     );
