@@ -34,7 +34,7 @@ def maintain_user_id(client: MongoClient) -> Optional[int]:
     return int(counter["seq"])
 
 
-def create(email: str, password: str) -> bool:
+def create(email: str, username: str, password: str) -> bool:
     client = get_db_client()
     if client is None:
         return False
@@ -51,6 +51,7 @@ def create(email: str, password: str) -> bool:
         user_data: Dict[str, Any] = {
             "user_id": user_id,
             "email": email,
+            "username": username,
             "password": password,
         }
         collection.insert_one(user_data)
@@ -75,7 +76,7 @@ def check_duplicate(email: str, client: Optional[MongoClient] = None) -> bool:
         if owns_client:
             client.close()
 
-def modify_password(user_id: int, new_password: str) -> bool:
+def modify_data(user_id: int, username: str, new_password: str) -> bool:
     client = get_db_client()
     if client is None:
         return False
@@ -84,7 +85,7 @@ def modify_password(user_id: int, new_password: str) -> bool:
         collection = _get_db(client)["Users"]
         result = collection.update_one(
             {"user_id": user_id},
-            {"$set": {"password": new_password}}
+            {"$set": {"username": username, "password": new_password}}
         )
         return result.modified_count > 0
     finally:
@@ -103,6 +104,7 @@ def login(email: str) -> Optional[Dict[str, Any]]:
         return {
             "user_id": user.get("user_id"),
             "email": user.get("email"),
+            "username": user.get("username"),
             "password": user.get("password"),
         }
     finally:

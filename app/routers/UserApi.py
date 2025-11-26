@@ -1,20 +1,20 @@
 from fastapi import APIRouter, HTTPException, status
 
 try:
-    from ..models.UserReq import UserLoginReq, UserRegisterReq, UserModifyPasswordReq
+    from ..models.UserReq import UserLoginReq, UserRegisterReq, UserModifyDataReq
     from ..models.UserResp import UserLoginResp
     from ..services.UserService import (
         user_login as login_user_service,
         user_register as register_user_service,
-        user_modify_password as modify_user_password_service,
+        user_modify_data as modify_user_data_service,
     )
 except ImportError:  # Allow running without package context
-    from models.UserReq import UserLoginReq, UserRegisterReq, UserModifyPasswordReq  # type: ignore
+    from models.UserReq import UserLoginReq, UserRegisterReq, UserModifyDataReq  # type: ignore
     from models.UserResp import UserLoginResp  # type: ignore
     from services.UserService import (  # type: ignore
         user_login as login_user_service,
         user_register as register_user_service,
-        user_modify_password as modify_user_password_service,
+        user_modify_data as modify_user_data_service,
     )
 
 
@@ -42,12 +42,12 @@ def login_user(request: UserLoginReq) -> UserLoginResp:
         )
     return user
 
-@router.post("/modify-password")
-def modify_user_password(request: UserModifyPasswordReq):
-    success = modify_user_password_service(request)
+@router.post("/modify-data")
+def modify_user_data(request: UserModifyDataReq):
+    success = modify_user_data_service(request)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password modification failed.",
+            detail="Data modification failed.",
         )
-    return {"message": "Password modified successfully."}
+    return {"message": "Data modified successfully."}

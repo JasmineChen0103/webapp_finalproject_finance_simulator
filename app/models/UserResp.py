@@ -5,3 +5,4 @@ class UserLoginResp(BaseModel):
 
     user_id: int
     email: str
+    username: str

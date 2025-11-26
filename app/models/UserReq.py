@@ -3,13 +3,14 @@ from pydantic import BaseModel
 __all__ = [
     "UserRegisterReq",
     "UserLoginReq",
-    "UserModifyPasswordReq",
+    "UserModifyDataReq",
 ]
 
 class UserRegisterReq(BaseModel):
     """User registration request model."""
 
     email: str
+    username: str
     password: str
     confirmPwd: str
 
@@ -19,10 +20,11 @@ class UserLoginReq(BaseModel):
     email: str
     password: str
 
-class UserModifyPasswordReq(BaseModel):
+class UserModifyDataReq(BaseModel):
     """User modify password request model."""
 
     user_id: int
     email: str
+    username: str
     old_password: str
     new_password: str
