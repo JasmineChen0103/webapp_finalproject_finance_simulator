@@ -11,6 +11,9 @@ import {
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { useNavigate } from "react-router-dom";
 
+ // 引入後端註冊 API
+ import { registerApi } from "../../api/auth";
+
 export default function Signup() {
     const navigate = useNavigate();
 
@@ -21,26 +24,29 @@ export default function Signup() {
 
     const [pwdError, setPwdError] = useState("");
 
-    const handleSignup = (e) => {
+    const handleSignup = async (e) => {
         e.preventDefault();
 
-        // 確認密碼一致
+        // 密碼一致確認
         if (password !== confirmPwd) {
             setPwdError("Passwords do not match.");
             return;
         }
-
+        
         setPwdError("");
 
-        console.log("Signup:", {
-            username,
-            email,
-            password,
-        });
+        try {
+            // 呼叫後端註冊 API
+            // 新增：把 username 一起送到後端
+            await registerApi(username, email, password, confirmPwd);
 
-        // TODO: 呼叫後端 API
+            alert("Registration successful!");
+            navigate("/login");
 
-        navigate("/login");
+        } catch (err) {
+            alert("Registration failed");
+            console.error(err);
+        }
     };
 
     return (

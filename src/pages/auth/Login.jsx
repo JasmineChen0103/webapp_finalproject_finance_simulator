@@ -11,23 +11,35 @@ import {
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useNavigate } from "react-router-dom";
 
+// 引入 API 呼叫
+import { loginApi } from "../../api/auth";
+
 export default function Login() {
     const navigate = useNavigate();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // 暫時先用假登入（有填就算成功），之後接後端要判斷有沒有基本資料了，有直接進 dashboard，沒有就要接 onboarding
-        if (email && password) {
-            console.log("Fake Login Success");
+        try {
+            // 呼叫後端登入 API
+            const user = await loginApi(email, password);
+
+            console.log("Login success:", user);
+
+            // 儲存登入資訊（之後 dashboard 會用）
+            localStorage.setItem("user", JSON.stringify(user));
+
+            // 登入成功 → 前往 dashboard
             navigate("/dashboard");
-        } else {
-            console.log("Missing fields");
+        } catch (err) {
+            console.error("Login Error:", err);
+            alert("Login failed");
         }
     };
+
 
     return (
         <Box
