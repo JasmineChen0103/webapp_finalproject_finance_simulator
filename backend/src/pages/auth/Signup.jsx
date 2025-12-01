@@ -8,38 +8,34 @@ import {
     Container,
     Link,
 } from "@mui/material";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { useNavigate } from "react-router-dom";
 
-// 引入 API 呼叫
-import { loginApi } from "../../api/auth";
-
-export default function Login() {
+export default function Signup() {
     const navigate = useNavigate();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPwd, setConfirmPwd] = useState("");
 
-    const handleSubmit = async (e) => {
+    const [pwdError, setPwdError] = useState(""); // 用來顯示錯誤訊息
+
+    const handleSignup = (e) => {
         e.preventDefault();
 
-        try {
-            // 呼叫後端登入 API
-            const user = await loginApi(email, password);
-
-            console.log("Login success:", user);
-
-            // 儲存登入資訊（之後 dashboard 會用）
-            localStorage.setItem("user", JSON.stringify(user));
-
-            // 登入成功 → 前往 dashboard
-            navigate("/dashboard");
-        } catch (err) {
-            console.error("Login Error:", err);
-            alert("Login failed");
+        // 檢查兩次密碼是否一致
+        if (password !== confirmPwd) {
+            setPwdError("Passwords do not match.");
+            return;
         }
-    };
 
+        setPwdError(""); // 清除錯誤
+        console.log("Signup:", email, password);
+
+        // TODO: 呼叫後端 API
+
+        navigate("/login");
+    };
 
     return (
         <Box
@@ -59,18 +55,18 @@ export default function Login() {
                         alignItems: "center",
                     }}
                 >
-                    <Avatar sx={{ m: 1, bgcolor: "primary.main" }}>
-                        <LockOutlinedIcon />
+                    <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
+                        <PersonAddIcon />
                     </Avatar>
 
                     <Typography component="h1" variant="h5">
-                        Login
+                        Sign Up
                     </Typography>
 
-                    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
+                    <Box component="form" onSubmit={handleSignup} sx={{ mt: 1 }}>
                         <TextField
-                            margin="normal"
                             fullWidth
+                            margin="normal"
                             required
                             label="Email Address"
                             value={email}
@@ -78,13 +74,25 @@ export default function Login() {
                         />
 
                         <TextField
-                            margin="normal"
                             fullWidth
+                            margin="normal"
                             required
                             label="Password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                        />
+
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            required
+                            label="Confirm Password"
+                            type="password"
+                            value={confirmPwd}
+                            error={pwdError !== ""}       // 錯誤時變紅
+                            helperText={pwdError}         // 錯誤訊息
+                            onChange={(e) => setConfirmPwd(e.target.value)}
                         />
 
                         <Button
@@ -93,11 +101,11 @@ export default function Login() {
                             variant="contained"
                             sx={{ mt: 3, mb: 2 }}
                         >
-                            Login
+                            Create Account
                         </Button>
 
-                        <Link href="/signup" variant="body2">
-                            {"Don't have an account? Sign Up"}
+                        <Link href="/login" variant="body2">
+                            Already have an account? Log In
                         </Link>
                     </Box>
                 </Box>
