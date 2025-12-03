@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 import numpy as np
 
 try:
+    # 假設這是從 SimulationReq 載入的原始模型定義
     from ..models.SimulationReq import Event, Expenses, Scenario, SimulationRequest
 except ImportError:  # Allow running without package context
     from models.SimulationReq import Event, Expenses, Scenario, SimulationRequest  # type: ignore
@@ -11,6 +12,28 @@ except ImportError:  # Allow running without package context
 
 __all__ = ["simulate_financial_plan"]
 
+# --- 新增的顏色配置與輔助函數 ---
+
+# 為支出類別提供固定的顏色調色板 (Tailwind 顏色模擬)
+COLOR_PALETTE = [
+    "#34D399", # Emerald-400 (綠色 - 收入/儲蓄)
+    "#FBBF24", # Amber-400 (黃色 - 必需支出)
+    "#F87171", # Red-400 (紅色 - 波動或風險)
+    "#60A5FA", # Blue-400 (藍色 - 投資)
+    "#A78BFA", # Violet-400 (紫色 - 娛樂)
+    "#E879F9", # Pink-400 (粉色 - 其他)
+]
+
+# 趨勢判斷輔助函數
+def _determine_trend(diff: float) -> Literal["up", "down", "flat"]:
+    if diff > 0.05:
+        return "up"
+    elif diff < -0.05:
+        return "down"
+    else:
+        return "flat"
+
+# --- 核心數據模型與邏輯 (與原始代碼相同，僅用於上下文) ---
 
 MarketMode = Literal["fixed", "normal"]
 
@@ -120,6 +143,9 @@ def box_stats(values: np.ndarray) -> Dict[str, float]:
 def realized_cagr(first: float, last: float, months: int) -> float:
     if first <= 0 or last <= 0 or months <= 0:
         return 0.0
+    # 確保不會發生負數或零的次方運算
+    if first <= 0 or last <= 0:
+         return 0.0
     return (last / first) ** (12.0 / months) - 1.0
 
 
@@ -297,6 +323,7 @@ def _build_events(events: Optional[List[Event]], months: int) -> List[EventCore]
 
 
 def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
+    # 1. 執行核心模擬 (這部分與原始程式碼相同)
     base_expenses = expenses_to_dict(request.expenses)
     scenarios: List[Scenario] = [Scenario(name="Baseline")] + request.scenarios
 
@@ -311,23 +338,23 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
     )
 
     results: List[Dict[str, Any]] = []
-    final_assets_all: List[Tuple[str, np.ndarray]] = [] # 收集每個情境的期末資產樣本（箱形圖用）
+    final_assets_all: List[Tuple[str, np.ndarray]] = [] # 收集每個情境的期末資產樣本
 
     for scenario in scenarios:
-        # 1) 套用支出 / 投資比調整
-        expenses_adjusted = apply_expenses_delta(base_expenses, scenario.expenses_delta)    ## 套用支出比例調整後的消費
+        # 套用支出 / 投資比調整
+        expenses_adjusted = apply_expenses_delta(base_expenses, scenario.expenses_delta)
         invest_ratio = float(
-            np.clip( # 確保投資比例永遠在 0～1 之間
+            np.clip(
                 request.invest_ratio + (scenario.invest_ratio_delta or 0.0),
                 0.0,
                 1.0,
             )
         )
 
-        # 2) 轉換 events
+        # 轉換 events
         events_core = _build_events(scenario.events, request.months)
 
-        # 3) 跑 Monte Carlo
+        # 跑 Monte Carlo
         asset_paths, median, p05, p95 = run_paths(
             months=request.months,
             income_monthly=request.income_monthly,
@@ -340,8 +367,8 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
         )
 
         # 蒐集期末資產樣本
-        final_assets = asset_paths[:, -1] # 每個 Monte Carlo 路徑在「最後一個月」的資產
-        final_assets_all.append((scenario.name, final_assets)) # 各情境下的最終資產
+        final_assets = asset_paths[:, -1]
+        final_assets_all.append((scenario.name, final_assets))
 
         results.append(
             {
@@ -354,23 +381,21 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
                 "monthly_saving_rate": monthly_saving_rate(
                     request.income_monthly, sum(expenses_adjusted.values())
                 ),
+                # 為了 StatCards 收集 Baseline P05/P75
+                "final_p05": float(np.percentile(final_assets, 5)),
+                "final_p75": float(np.percentile(final_assets, 75)),
             }
         )
 
-    # 組期末資產箱形圖（用所有蒙地卡羅路徑的結果畫） / summary
-    distributions: List[Dict[str, Any]] = []
+    # 組期末資產箱形圖 / summary (與原始代碼相同，僅用於內部計算)
     summaries: List[Dict[str, Any]] = []
+    first_asset = results[0]["median"][0] if results[0]["median"] else 0.0 # 初始資產
 
     for name, values in final_assets_all:
         values_np = np.asarray(values, dtype=float)
         stats = box_stats(values_np)
-        distributions.append({"scenario": name, **stats})
-
-        # annualized return: 用最早一個月的 median 當起點（粗略即可）
-        # baseline 以外情境一樣用同一個起點比較
-        first_asset = results[0]["median"][0] if results[0]["median"] else 0.0
         last_med = float(np.median(values_np))
-        cagr = realized_cagr(first_asset, last_med, request.months) # 用 baseline第一個月份的中位數當起始資產、各sc期末中位數當終點，算實際年化報酬率（幾何）
+        cagr = realized_cagr(first_asset, last_med, request.months)
         summaries.append(
             {
                 "scenario": name,
@@ -378,11 +403,102 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
                 "annualized_return_realized": cagr,
             }
         )
+        
+    # 2. 轉換為前端所需格式
 
+    # 2.1. 轉換 lineChart 數據
+    categories = results[0]["months"] if results else []
+    
+    # currentPlan: 預設為 Baseline 中位數 P50
+    current_plan_data = results[0]["median"] if results else []
+
+    # projectedAsset: 如果有多個情境，用第一個情境的中位數；否則用 Baseline P95 (樂觀情境)
+    projected_asset_data = []
+    if len(results) > 1:
+        projected_asset_data = results[1]["median"]
+    elif results:
+        projected_asset_data = results[0]["p95"]
+
+    line_chart_data = {
+        "categories": categories,
+        "currentPlan": current_plan_data,
+        "projectedAsset": projected_asset_data,
+    }
+
+    # 2.2. 轉換 pieChart 數據
+    pie_expenses_list = []
+    for i, (category, amount) in enumerate(base_expenses.items()):
+        pie_expenses_list.append({
+            "category": category,
+            "amount": round(amount, 2), # 使用絕對月支出金額
+            "color": COLOR_PALETTE[i % len(COLOR_PALETTE)] # 循環使用顏色
+        })
+        
+    pie_chart_data = {"expenses": pie_expenses_list}
+    
+    # 2.3. 轉換 statCards 數據 (以 Baseline 情境為主)
+    stat_cards = []
+    
+    if summaries:
+        baseline_summary = summaries[0]
+        baseline_result = results[0]
+        
+        final_asset_median = baseline_summary["final_asset_median"]
+        annualized_return = baseline_summary["annualized_return_realized"]
+        monthly_saving_rate_val = baseline_result["monthly_saving_rate"]
+        worst_case_asset = baseline_result["final_p05"]
+        final_p75 = baseline_result["final_p75"]
+        
+        # Stat Card 1: 期末資產中位數 (P50)
+        # diff: 比較 P50 與 P75 的距離 (作為資產增值的參考)
+        diff_p50_p75 = final_asset_median - final_p75
+        stat_cards.append({
+            "title": "預期期末資產 (P50)",
+            "value": f"${final_asset_median:,.0f}",
+            "iconBgColor": COLOR_PALETTE[3], # 藍色
+            "subText": f"對比 P75 估計：{final_p75:,.0f}",
+            "diff": round(diff_p50_p75, 0),
+            "trend": _determine_trend(diff_p50_p75 / final_asset_median if final_asset_median else 0)
+        })
+
+        # Stat Card 2: 實際年化報酬率 (CAGR)
+        # diff: 與固定年化報酬率的差異
+        diff_cagr_fixed = annualized_return - market_core.fixed_annual_return
+        stat_cards.append({
+            "title": "實際年化報酬率",
+            "value": f"{annualized_return * 100:.2f}%",
+            "iconBgColor": COLOR_PALETTE[0], # 綠色
+            "subText": f"基準年化報酬率：{market_core.fixed_annual_return * 100:.2f}%",
+            "diff": round(diff_cagr_fixed, 4),
+            "trend": _determine_trend(diff_cagr_fixed)
+        })
+
+        # Stat Card 3: 每月儲蓄率
+        # diff: 儲蓄率的絕對值
+        stat_cards.append({
+            "title": "每月儲蓄率",
+            "value": f"{monthly_saving_rate_val * 100:.1f}%",
+            "iconBgColor": COLOR_PALETTE[2], # 黃色 (中性)
+            "subText": f"每月可支配收入：${request.income_monthly - sum(base_expenses.values()):,.0f}",
+            "diff": round(monthly_saving_rate_val, 4),
+            "trend": "up" # 儲蓄率通常是越高越好
+        })
+        
+        # Stat Card 4: 95% 最差情境資產 (P05)
+        # diff: P05 與 P50 的差異 (風險指標)
+        diff_p05_p50 = worst_case_asset - final_asset_median
+        stat_cards.append({
+            "title": "95% 最差情境資產 (P05)",
+            "value": f"${worst_case_asset:,.0f}",
+            "iconBgColor": COLOR_PALETTE[2], # 紅色 (風險)
+            "subText": f"與中位數差異：${diff_p05_p50:,.0f}",
+            "diff": round(diff_p05_p50, 0),
+            "trend": _determine_trend(diff_p05_p50 / final_asset_median if final_asset_median else 0)
+        })
+
+    # 3. 組裝最終輸出
     return {
-        "series": results, # 資產走勢折線圖（多條 scenario，含信賴區間）
-        "final_box": distributions, # 末月資產風險分佈箱形圖
-        "pie_expenses": expense_pie(base_expenses), # 目前用 baseline 支出結構
-        "summaries": summaries, # 期末資產(各路徑中位數）、實際年化報酬率
-        "used_seed": request.seed, # 想重現同一次模擬用
+        "lineChart": line_chart_data,
+        "pieChart": pie_chart_data,
+        "statCards": stat_cards,
     }
