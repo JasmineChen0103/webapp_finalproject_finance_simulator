@@ -43,7 +43,6 @@ function ExpenseDeltaSection({ data, onChange, onAdd, onDelete }) {
     // 處理新增支出類別
     const handleAdd = () => {
         const newKey = `custom_${deltaKeys.length + 1}`;
-        // 傳入新的 Key-Value Pair
         onAdd(newKey, 0); 
     };
 
@@ -53,7 +52,7 @@ function ExpenseDeltaSection({ data, onChange, onAdd, onDelete }) {
                 <PercentIcon sx={{ mr: 1 }} fontSize="small" /> 長期固定支出調整 (Expenses Delta)
             </Typography>
             <Typography variant="body2" color="text.secondary" mb={2}>
-                * 調整比例 (如 -0.1 = 減少 10%)，從第 1 個月起全程生效。
+                * 輸入調整百分比 (如 -10% = 減少 10%)，從第 1 個月起全程生效。
             </Typography>
             
             <Stack spacing={1}>
@@ -64,7 +63,7 @@ function ExpenseDeltaSection({ data, onChange, onAdd, onDelete }) {
                             size="small"
                             label="支出類別"
                             value={key}
-                            onChange={(e) => onChange('expenses_delta', key, e.target.value, data[key])} // 舊key, 新key, 舊value
+                            onChange={(e) => onChange('expenses_delta', key, e.target.value, data[key])}
                             sx={{ minWidth: 120 }}
                         >
                             {EXPENSE_CATEGORIES.map(cat => (
@@ -77,9 +76,10 @@ function ExpenseDeltaSection({ data, onChange, onAdd, onDelete }) {
                             size="small"
                             type="number"
                             label="比例 (Delta)"
-                            value={data[key]}
-                            onChange={(e) => onChange('expenses_delta', key, key, Number(e.target.value))} // 舊key, 舊key, 新value
+                            value={data[key] * 100}
+                            onChange={(e) => onChange('expenses_delta', key, key, Number(e.target.value) / 100)}
                             InputProps={{
+                                startAdornment: <Typography sx={{ mr: 0.5 }}>+/-</Typography>,
                                 endAdornment: <Typography sx={{ ml: 0.5 }}>%</Typography>
                             }}
                         />
@@ -118,9 +118,9 @@ function EventListSection({ events, onChange, onAdd, onDelete }) {
                             </IconButton>
                         </Stack>
                         
-                        <Grid container spacing={2}>
+                        <Grid container spacing={2} sx={{ width: '100%' }}>
                             {/* 第一行：月份與類型 */}
-                            <Grid item xs={6} md={3}>
+                            <Grid item xs={12} sm={6} md={3}>
                                 <TextField 
                                     fullWidth size="small" type="number" 
                                     label="起始月 (month_idx)" name="month_idx" 
@@ -128,7 +128,7 @@ function EventListSection({ events, onChange, onAdd, onDelete }) {
                                     onChange={(e) => onChange(idx, e.target.name, Number(e.target.value))}
                                 />
                             </Grid>
-                            <Grid item xs={6} md={3}>
+                            <Grid item xs={12} sm={6} md={3}>
                                 <TextField 
                                     fullWidth size="small" type="number" 
                                     label="結束月 (可選)" name="end_month_idx" 
@@ -178,6 +178,10 @@ function EventListSection({ events, onChange, onAdd, onDelete }) {
                                         label={`${event.type === 'income_delta' ? '收入' : '投資比例'} 變動 (delta)`} name="delta" 
                                         value={event.delta || ''} 
                                         onChange={(e) => onChange(idx, e.target.name, Number(e.target.value))}
+                                        InputProps={{
+                                            startAdornment: <Typography sx={{ mr: 0.5 }}>+/-</Typography>,
+                                            endAdornment: <Typography sx={{ ml: 0.5 }}>%</Typography>
+                                        }}
                                     />
                                 )}
                             </Grid>
@@ -186,7 +190,6 @@ function EventListSection({ events, onChange, onAdd, onDelete }) {
                 ))}
             </Stack>
 
-            {/* 修正：點擊時呼叫傳入的 onAdd 函式，而不是自己定義的 handleAddEvent */}
             <Button startIcon={<AddIcon />} onClick={onAdd} variant="contained" size="small" sx={{ mt: 3 }}>
                 新增事件
             </Button>
@@ -338,11 +341,15 @@ export default function ScenarioFullEditModal({ open, onClose, scenario, onSave 
                                 type="number"
                                 label="投資比例變動 (Invest Ratio Delta)"
                                 name="invest_ratio_delta"
-                                value={editedScenario.invest_ratio_delta}
-                                onChange={handleBasicChange}
+                                value={editedScenario.invest_ratio_delta * 100}
+                                onChange={(e) => setEditedScenario(prev => ({ 
+                                    ...prev, 
+                                    invest_ratio_delta: Number(e.target.value) / 100 
+                                }))}
                                 size="small"
                                 InputProps={{
-                                    endAdornment: <Typography sx={{ ml: 0.5 }}> (%)</Typography>
+                                    startAdornment: <Typography sx={{ mr: 0.5 }}>+/-</Typography>,
+                                    endAdornment: <Typography sx={{ ml: 0.5 }}>%</Typography>
                                 }}
                                 helperText="將疊加到您的基礎投資比例上 (結果會被限制在 0% 到 100%)"
                             />
