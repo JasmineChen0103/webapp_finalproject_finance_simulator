@@ -14,12 +14,7 @@ __all__ = [
 
 class Expenses(BaseModel):
     """每月支出結構（可先用這幾個欄位，如果之後要開放更多就再加）。"""
-
-    food: float = 0.0
-    rent: float = 0.0
-    transport: float = 0.0
-    entertainment: float = 0.0
-    misc: float = 0.0
+    List[Dict[str, float]]
 
 
 class MarketModel(BaseModel):
