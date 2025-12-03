@@ -3,17 +3,33 @@ import { Card, CardContent, Typography, Box, Button, Stack } from "@mui/material
 import EditIcon from "@mui/icons-material/Edit";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
-// 輔助函式：計算總金額
-const calculateTotal = (arr) => arr.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+// 新的輔助函式：計算調整項的摘要
+const getDeltaSummary = (expensesDelta) => {
+    if (!expensesDelta || Object.keys(expensesDelta).length === 0) {
+        return "固定支出無調整";
+    }
+    const changes = Object.entries(expensesDelta).map(([key, value]) => {
+        const sign = value >= 0 ? '+' : '';
+        return `${key}: ${sign}${(value * 100).toFixed(1)}%`;
+    });
+    return `固定支出調整: ${changes.join(', ')}`;
+};
 
 export default function ScenarioCard({ scenario, selectedId, onSelect, onEdit }) {
     const isSelected = scenario.id === selectedId;
 
-    // 計算顯示所需的值
-    const totalExpenseAmount = calculateTotal(scenario.expenses);
-    const totalInvestAmount = calculateTotal(scenario.investments);
-    const monthlyIncome = Number(scenario.monthlyIncome);
-    const remainingIncome = monthlyIncome - totalExpenseAmount;
+    // 提取情境調整數據
+    const { 
+        name, 
+        description, 
+        expenses_delta = {}, 
+        invest_ratio_delta = 0, 
+        events = [] 
+    } = scenario;
+
+    const deltaSummary = getDeltaSummary(expenses_delta);
+    const investDelta = (invest_ratio_delta * 100).toFixed(1);
+    const eventCount = events.length;
 
     return (
         <Card
@@ -36,34 +52,28 @@ export default function ScenarioCard({ scenario, selectedId, onSelect, onEdit })
             <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                     <Typography variant="h6" component="div">
-                        {scenario.title}
+                        {name}
                     </Typography>
                     
                     {isSelected && (
-                        <CheckCircleIcon color="primary" sx={{ ml: 1 }} />
+                        <CheckCircleIcon color="primary" sx={{ ml: 1, position: 'absolute', top: 8, right: 8 }} />
                     )}
                 </Box>
 
                 <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
-                    {scenario.description}
+                    {description || '無詳細描述。'}
                 </Typography>
 
-                {/* 顯示 Onboarding 數據摘要 */}
-                <Stack spacing={1} sx={{ fontSize: '0.9rem' }}>
-                    <Typography variant="body2" fontWeight="bold">
-                        淨資產: ${Number(scenario.totalAsset).toLocaleString()}
+                {/* 顯示情境調整數據摘要 */}
+                <Stack spacing={1} sx={{ fontSize: '0.9rem', mb: 2 }}>
+                    <Typography variant="body2">
+                        {deltaSummary}
                     </Typography>
                     <Typography variant="body2">
-                        月收入: ${monthlyIncome.toLocaleString()}
-                    </Typography>
-                    <Typography variant="body2" color="error.main">
-                        月支出: - ${totalExpenseAmount.toLocaleString()}
-                    </Typography>
-                    <Typography variant="body2" color="success.main">
-                        月投資: ${totalInvestAmount.toLocaleString()}
+                        長期投資比例調整: {investDelta >= 0 ? '+' : ''}{investDelta}%
                     </Typography>
                     <Typography variant="body2">
-                        剩餘現金: ${remainingIncome.toLocaleString()}
+                        設定事件數量: {eventCount} 個
                     </Typography>
                 </Stack>
 
@@ -73,14 +83,13 @@ export default function ScenarioCard({ scenario, selectedId, onSelect, onEdit })
                     size="small" 
                     variant="contained" 
                     color="secondary"
-                    sx={{ mt: 2 }}
-                    // 阻止點擊編輯按鈕時觸發卡片選擇事件
+                    sx={{ mt: 1 }}
                     onClick={(e) => {
                         e.stopPropagation(); 
                         onEdit(scenario);
                     }}
                 >
-                    編輯情境設定
+                    編輯情境調整
                 </Button>
             </CardContent>
         </Card>
