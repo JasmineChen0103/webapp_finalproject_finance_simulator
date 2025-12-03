@@ -33,7 +33,6 @@ def update_financial_setting(user_id: int,
     client = get_db_client()
     if client is None:
         return False
-    
     try:
         collection = _get_db(client)["FinancialSettings"]
         financial_data: Dict[str, Any] = {

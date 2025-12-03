@@ -2,7 +2,7 @@ from typing import List
 from pydantic import BaseModel, Field
 
 class FinancialSettingResp(BaseModel):
-    """Financial setting request model."""
+    """Financial setting response model."""
 
     user_id: int
     monthlyIncome: float = Field(..., ge=0)
