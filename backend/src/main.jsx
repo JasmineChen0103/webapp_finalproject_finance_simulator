@@ -4,10 +4,14 @@ import AppRouter from "./router/AppRouter";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 
+import { OnboardingProvider } from "./context/financialSetting";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AppRouter />
+      <OnboardingProvider>
+        <AppRouter />
+      </OnboardingProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

@@ -1,94 +1,99 @@
 import { useState } from "react";
 import {
-    Box,
-    Container,
-    Typography,
-    TextField,
-    Button,
-    Alert,
+  Box,
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Alert,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useOnboarding } from "../../context/financialSetting";
+
 
 export default function Step1Basic() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const { data, setData } = useOnboarding();
 
-    const [totalAsset, setTotalAsset] = useState("");
-    const [monthlyIncome, setMonthlyIncome] = useState("");
+  // 本地驗證用，不會直接送 API
+  const [error, setError] = useState("");
 
-    const [error, setError] = useState("");
+  const handleNext = () => {
+    // 基本驗證
+    if (!data.totalAsset || !data.monthlyIncome) {
+      setError("Total asset and monthly income are required.");
+      return;
+    }
 
-    const handleNext = () => {
-        // 基本驗證
-        if (!totalAsset || !monthlyIncome) {
-            setError("Total asset and monthly income are required.");
-            return;
-        }
+    if (Number(data.totalAsset) < 0 || Number(data.monthlyIncome) <= 0) {
+      setError("Values must be positive numbers.");
+      return;
+    }
 
-        if (Number(totalAsset) < 0 || Number(monthlyIncome) <= 0) {
-            setError("Values must be positive numbers.");
-            return;
-        }
+    setError("");
 
-        setError("");
+    // Step1 的資料已經存到 context → 不用 call API
+    navigate("/onboarding/step2");
+  };
 
-        // TODO: 呼叫後端 API，送出 Step1 資料
-        console.log("Step1 Data:", {
-            totalAsset,
-            monthlyIncome,
-        });
+  return (
+    <Box
+      sx={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#fafafa",
+      }}
+    >
+      <Container maxWidth="xs">
+        <Typography variant="h5" fontWeight={600} textAlign="center" mb={3}>
+          Step 1 — Basic Financial Settings
+        </Typography>
 
-        // 成功後導向 Step2
-        navigate("/onboarding/step2");
-    };
+        {error && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-    return (
-        <Box
-            sx={{
-                height: "100vh",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "#fafafa",
-            }}
+        <TextField
+          fullWidth
+          label="Total Asset"
+          type="number"
+          margin="normal"
+          value={data.totalAsset}
+          onChange={(e) =>
+            setData((prev) => ({
+              ...prev,
+              totalAsset: e.target.value,
+            }))
+          }
+        />
+
+        <TextField
+          fullWidth
+          label="Monthly Income"
+          type="number"
+          margin="normal"
+          value={data.monthlyIncome}
+          onChange={(e) =>
+            setData((prev) => ({
+              ...prev,
+              monthlyIncome: e.target.value,
+            }))
+          }
+        />
+
+        <Button
+          fullWidth
+          variant="contained"
+          sx={{ mt: 3 }}
+          onClick={handleNext}
         >
-            <Container maxWidth="xs">
-                <Typography variant="h5" fontWeight={600} textAlign="center" mb={3}>
-                    Step 1 — Basic Financial Settings
-                </Typography>
-
-                {error && (
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                        {error}
-                    </Alert>
-                )}
-
-                <TextField
-                    fullWidth
-                    label="Total Asset"
-                    type="number"
-                    margin="normal"
-                    value={totalAsset}
-                    onChange={(e) => setTotalAsset(e.target.value)}
-                />
-
-                <TextField
-                    fullWidth
-                    label="Monthly Income"
-                    type="number"
-                    margin="normal"
-                    value={monthlyIncome}
-                    onChange={(e) => setMonthlyIncome(e.target.value)}
-                />
-
-                <Button
-                    fullWidth
-                    variant="contained"
-                    sx={{ mt: 3 }}
-                    onClick={handleNext}
-                >
-                    Next
-                </Button>
-            </Container>
-        </Box>
-    );
+          Next
+        </Button>
+      </Container>
+    </Box>
+  );
 }

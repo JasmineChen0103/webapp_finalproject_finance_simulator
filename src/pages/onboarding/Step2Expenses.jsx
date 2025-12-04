@@ -12,11 +12,14 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { useNavigate } from "react-router-dom";
 
+
+import { useOnboarding } from "../../context/financialSetting";
+
 export default function Step2Expenses() {
     const navigate = useNavigate();
 
-    // 假設收入（正式版請從 Step1 帶入）
-    const monthlyIncome = 50000;
+    // 🔧【新增】從 Step1 拿 monthlyIncome，並存 Step2 結果
+    const { data, setData } = useOnboarding();
 
     const [rows, setRows] = useState([{ category: "", amount: "" }]);
     const [error, setError] = useState("");
@@ -27,46 +30,48 @@ export default function Step2Expenses() {
         0
     );
 
-    // 新增 row
     const addRow = () => {
         setRows([...rows, { category: "", amount: "" }]);
     };
 
-    // 更新 row
     const updateRow = (index, key, value) => {
         const newRows = [...rows];
         newRows[index][key] = value;
         setRows(newRows);
 
-        // 若修改後超出收入 → 警告
-        if (key === "amount") {
-            const newTotal = newRows.reduce(
-                (sum, r) => sum + Number(r.amount || 0),
-                0
-            );
-            if (newTotal > monthlyIncome) {
-                setError("Your monthly expenses exceed your monthly income!");
-            } else {
-                setError("");
-            }
+        // 🔧【修改】使用 data.monthlyIncome
+        const newTotal = newRows.reduce(
+            (sum, r) => sum + Number(r.amount || 0),
+            0
+        );
+        if (newTotal > Number(data.monthlyIncome)) {
+            setError("Your monthly expenses exceed your monthly income!");
+        } else {
+            setError("");
         }
     };
 
-    // 刪除 row
     const deleteRow = (index) => {
         const newRows = rows.filter((_, i) => i !== index);
         setRows(newRows);
     };
 
     const handleNext = () => {
-        if (totalExpenses > monthlyIncome) {
+        if (totalExpenses > Number(data.monthlyIncome)) {
             setError("Your monthly expenses exceed your monthly income!");
             return;
         }
 
         setError("");
 
-        console.log("Step2 Expenses:", rows);
+        // 🔧【新增】將支出暫存到 context（Step3 & Step4 需要用）
+        setData((prev) => ({
+            ...prev,
+            expenses: rows,
+            monthlyExpense: totalExpenses, // 🔧 通常後端需要總支出
+        }));
+
+        console.log("Step2 Expenses Saved To Context:", rows);
 
         navigate("/onboarding/step3");
     };
@@ -135,7 +140,6 @@ export default function Step2Expenses() {
                     </Box>
                 ))}
 
-                {/* Add 按鈕 */}
                 <Button
                     startIcon={<AddIcon />}
                     onClick={addRow}
@@ -149,7 +153,6 @@ export default function Step2Expenses() {
                     Total: {totalExpenses}
                 </Typography>
 
-                {/* 下方兩顆按鈕：Back / Next */}
                 <Box
                     sx={{
                         display: "flex",

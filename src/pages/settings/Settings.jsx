@@ -1,501 +1,579 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-    Box,
-    Container,
-    Typography,
-    Button,
-    Divider,
-    TextField,
-    IconButton,
-    FormControlLabel,
-    Checkbox
+  Box,
+  Container,
+  Typography,
+  Button,
+  Divider,
+  TextField,
+  IconButton,
+  FormControlLabel,
+  Checkbox,
+  Alert
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 
+// API
+import {
+  getFinancialSetting,
+  saveFinancialSetting
+} from "../../api/financialSetting";
+
 export default function Settings() {
-    /** -------------------------
-     * 假資料（正式版從後端拿）
-     -------------------------- */
-    const [basicInfo, setBasicInfo] = useState({
-        totalAsset: 100000,
-        monthlyIncome: 50000,
+  /** -------------------------
+   * Local state
+   -------------------------- */
+  const [basicInfo, setBasicInfo] = useState({
+    totalAsset: 0,
+    monthlyIncome: 0
+  });
+
+  const [expenses, setExpenses] = useState([]);
+  const [investments, setInvestments] = useState([]);
+
+  const [returnSetting, setReturnSetting] = useState({
+    fixed: "",
+    riskHigh: false,
+    riskLow: false
+  });
+
+  // draft states
+  const [editBasic, setEditBasic] = useState(false);
+  const [editExpenses, setEditExpenses] = useState(false);
+  const [editInvestments, setEditInvestments] = useState(false);
+
+  const [draftBasic, setDraftBasic] = useState(basicInfo);
+  const [draftExpenses, setDraftExpenses] = useState(expenses);
+  const [draftInvestments, setDraftInvestments] = useState(investments);
+  const [draftRisk, setDraftRisk] = useState(returnSetting);
+
+  // errors / success
+  const [expenseError, setExpenseError] = useState("");
+  const [investError, setInvestError] = useState("");
+  const [riskError, setRiskError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+
+  /** -------------------------
+   * Load user id
+   -------------------------- */
+  const storedUser = localStorage.getItem("user");
+  const userId = storedUser ? JSON.parse(storedUser).user_id : null;
+
+  /** -------------------------
+   * GET financial setting from backend
+   -------------------------- */
+  useEffect(() => {
+    async function load() {
+      try {
+        if (!userId) {
+          setError("User not logged in");
+          return;
+        }
+
+        const data = await getFinancialSetting(userId);
+
+        // set states
+        setBasicInfo({
+          totalAsset: data.totalAsset,
+          monthlyIncome: data.monthlyIncome
+        });
+
+        setExpenses(data.expenses || []);
+        setInvestments(data.investments || []);
+
+        setReturnSetting({
+          fixed: data.fixedReturn || "",
+          riskHigh: data.riskMode === "high",
+          riskLow: data.riskMode === "low"
+        });
+
+        // update drafts
+        setDraftBasic({
+          totalAsset: data.totalAsset,
+          monthlyIncome: data.monthlyIncome
+        });
+
+        setDraftExpenses(data.expenses || []);
+        setDraftInvestments(data.investments || []);
+
+        setDraftRisk({
+          fixed: data.fixedReturn || "",
+          riskHigh: data.riskMode === "high",
+          riskLow: data.riskMode === "low"
+        });
+
+      } catch (err) {
+        setError(err.message);
+      }
+    }
+
+    load();
+  }, [userId]);
+
+  /** -------------------------
+   * Calculation
+   -------------------------- */
+  const totalExpenses = draftExpenses.reduce(
+    (sum, r) => sum + Number(r.amount || 0),
+    0
+  );
+
+  const availableForInvest =
+    Number(draftBasic.monthlyIncome || 0) - Number(totalExpenses || 0);
+
+  const totalInvestments = draftInvestments.reduce(
+    (sum, r) => sum + Number(r.amount || 0),
+    0
+  );
+
+  /** -------------------------
+   * Risk toggle handlers
+   -------------------------- */
+  const handleFixedChange = (v) => {
+    setDraftRisk({
+      fixed: v,
+      riskHigh: false,
+      riskLow: false
     });
+  };
 
-    const [expenses, setExpenses] = useState([
-        { category: "Food", amount: 5000 },
-        { category: "Transport", amount: 2000 },
-    ]);
-
-    const [investments, setInvestments] = useState([
-        { type: "Stocks", amount: 10000 },
-        { type: "ETF", amount: 5000 },
-    ]);
-
-    // investment risk settings
-    const [returnSetting, setReturnSetting] = useState({
-        fixed: "",
-        riskHigh: false,
-        riskLow: false,
+  const toggleHigh = () => {
+    setDraftRisk({
+      fixed: "",
+      riskHigh: !draftRisk.riskHigh,
+      riskLow: false
     });
+  };
 
-    /** -------------------------
-     * Draft States (edit mode)
-     -------------------------- */
-    const [editBasic, setEditBasic] = useState(false);
-    const [editExpenses, setEditExpenses] = useState(false);
-    const [editInvestments, setEditInvestments] = useState(false);
+  const toggleLow = () => {
+    setDraftRisk({
+      fixed: "",
+      riskHigh: false,
+      riskLow: !draftRisk.riskLow
+    });
+  };
 
-    const [draftBasic, setDraftBasic] = useState(basicInfo);
-    const [draftExpenses, setDraftExpenses] = useState(expenses);
-    const [draftInvestments, setDraftInvestments] = useState(investments);
-    const [draftRisk, setDraftRisk] = useState(returnSetting);
+  /** -------------------------
+   * POST updated setting → backend
+   -------------------------- */
+  async function handleSaveAll() {
+    try {
+      setSuccess("");
+      setError("");
 
-    /** -------------------------
-     * Error States
-     -------------------------- */
-    const [expenseError, setExpenseError] = useState("");
-    const [investError, setInvestError] = useState("");
-    const [riskError, setRiskError] = useState("");
+      const payload = {
+        user_id: userId,
+        totalAsset: Number(basicInfo.totalAsset),
+        monthlyIncome: Number(basicInfo.monthlyIncome),
+        monthlyExpense: totalExpenses, // 會一起更新
+        expenses,
+        investments,
+        riskMode: returnSetting.riskHigh
+          ? "high"
+          : returnSetting.riskLow
+          ? "low"
+          : "fixed",
+        fixedReturn: returnSetting.fixed || null
+      };
 
-    /** -------------------------
-     * 計算邏輯
-     -------------------------- */
-    const totalExpenses = draftExpenses.reduce(
-        (sum, r) => sum + Number(r.amount || 0),
-        0
-    );
+      console.log("📤 Sending payload:", payload);
 
-    const availableForInvest = draftBasic.monthlyIncome - totalExpenses;
+      const res = await saveFinancialSetting(payload);
+      setSuccess("Settings updated successfully!");
+    } catch (err) {
+      setError(err.message || "Update failed");
+    }
+  }
 
-    const totalInvestments = draftInvestments.reduce(
-        (sum, r) => sum + Number(r.amount || 0),
-        0
-    );
+  /** -------------------------
+   * UI
+   -------------------------- */
+  return (
+    <Box sx={{ p: 4 }}>
+      <Container maxWidth="md">
+        <Typography variant="h4" fontWeight={700} mb={3}>
+          Settings
+        </Typography>
 
-    /** -------------------------
-     * Risk setting toggles
-     -------------------------- */
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-    const handleFixedChange = (v) => {
-        setDraftRisk({
-            fixed: v,
-            riskHigh: false,
-            riskLow: false,
-        });
-    };
+        {/* ---------------- BASIC INFO ---------------- */}
+        <Typography variant="h6">Basic Info</Typography>
 
-    const toggleHigh = () => {
-        const val = !draftRisk.riskHigh;
-        setDraftRisk({
-            fixed: "",
-            riskHigh: val,
-            riskLow: false,
-        });
-    };
+        {!editBasic ? (
+          <>
+            <Typography>Total Asset: {basicInfo.totalAsset}</Typography>
+            <Typography>Monthly Income: {basicInfo.monthlyIncome}</Typography>
 
-    const toggleLow = () => {
-        const val = !draftRisk.riskLow;
-        setDraftRisk({
-            fixed: "",
-            riskHigh: false,
-            riskLow: val,
-        });
-    };
+            <Button
+              variant="outlined"
+              sx={{ mt: 1 }}
+              onClick={() => {
+                setDraftBasic(basicInfo);
+                setEditBasic(true);
+              }}
+            >
+              Edit
+            </Button>
+          </>
+        ) : (
+          <>
+            <TextField
+              fullWidth
+              label="Total Asset"
+              sx={{ mt: 1 }}
+              value={draftBasic.totalAsset}
+              onChange={(e) =>
+                setDraftBasic({
+                  ...draftBasic,
+                  totalAsset: Number(e.target.value)
+                })
+              }
+            />
 
-    /** ======================================================
-     *  ⬇⬇⬇ COMPONENT RETURN (UI) ⬇⬇⬇
-     ====================================================== */
+            <TextField
+              fullWidth
+              label="Monthly Income"
+              sx={{ mt: 2 }}
+              value={draftBasic.monthlyIncome}
+              onChange={(e) =>
+                setDraftBasic({
+                  ...draftBasic,
+                  monthlyIncome: Number(e.target.value)
+                })
+              }
+            />
 
-    return (
-        <Box sx={{ p: 4 }}>
-            <Container maxWidth="md">
+            <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => {
+                  setBasicInfo(draftBasic);
+                  setEditBasic(false);
+                }}
+              >
+                Save
+              </Button>
 
-                <Typography variant="h4" fontWeight={700} mb={3}>
-                    Settings
-                </Typography>
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={() => setEditBasic(false)}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </>
+        )}
 
-                {/* ---------------- BASIC INFO ---------------- */}
-                <Typography variant="h6">Basic Info</Typography>
+        <Divider sx={{ my: 3 }} />
 
-                {!editBasic ? (
-                    <>
-                        <Typography>Total Asset: {basicInfo.totalAsset}</Typography>
-                        <Typography>Monthly Income: {basicInfo.monthlyIncome}</Typography>
+        {/* ---------------- EXPENSES ---------------- */}
+        <Typography variant="h6">Expenses</Typography>
 
-                        <Button
-                            variant="outlined"
-                            sx={{ mt: 1 }}
-                            onClick={() => {
-                                setDraftBasic(basicInfo);
-                                setEditBasic(true);
-                            }}
-                        >
-                            Edit
-                        </Button>
-                    </>
-                ) : (
-                    <>
-                        <TextField
-                            fullWidth
-                            label="Total Asset"
-                            sx={{ mt: 1 }}
-                            value={draftBasic.totalAsset}
-                            onChange={(e) =>
-                                setDraftBasic({ ...draftBasic, totalAsset: Number(e.target.value) })
-                            }
-                        />
+        {!editExpenses ? (
+          <>
+            {expenses.map((e, i) => (
+              <Typography key={i}>
+                {e.category}: {e.amount}
+              </Typography>
+            ))}
 
-                        <TextField
-                            fullWidth
-                            label="Monthly Income"
-                            sx={{ mt: 2 }}
-                            value={draftBasic.monthlyIncome}
-                            onChange={(e) =>
-                                setDraftBasic({
-                                    ...draftBasic,
-                                    monthlyIncome: Number(e.target.value),
-                                })
-                            }
-                        />
+            <Button
+              variant="outlined"
+              sx={{ mt: 1 }}
+              onClick={() => {
+                setDraftExpenses(expenses);
+                setEditExpenses(true);
+                setExpenseError("");
+              }}
+            >
+              Edit
+            </Button>
+          </>
+        ) : (
+          <>
+            {draftExpenses.map((e, i) => (
+              <Box key={i} sx={{ display: "flex", gap: 2, mt: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Category"
+                  value={e.category}
+                  onChange={(ev) => {
+                    const rows = [...draftExpenses];
+                    rows[i].category = ev.target.value;
+                    setDraftExpenses(rows);
+                  }}
+                />
 
-                        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                            <Button
-                                variant="contained"
-                                fullWidth
-                                onClick={() => {
-                                    setBasicInfo(draftBasic);
-                                    setEditBasic(false);
-                                }}
-                            >
-                                Save
-                            </Button>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Amount"
+                  value={e.amount}
+                  onChange={(ev) => {
+                    const rows = [...draftExpenses];
+                    rows[i].amount = Number(ev.target.value);
+                    setDraftExpenses(rows);
 
-                            <Button
-                                variant="outlined"
-                                fullWidth
-                                onClick={() => setEditBasic(false)}
-                            >
-                                Cancel
-                            </Button>
-                        </Box>
-                    </>
-                )}
+                    const newTotal = rows.reduce(
+                      (s, r) => s + Number(r.amount || 0),
+                      0
+                    );
 
-                <Divider sx={{ my: 3 }} />
+                    if (newTotal > draftBasic.monthlyIncome) {
+                      setExpenseError(
+                        "Total expenses exceed monthly income!"
+                      );
+                    } else {
+                      setExpenseError("");
+                    }
+                  }}
+                />
 
-                {/* ---------------- EXPENSES ---------------- */}
-                <Typography variant="h6">Expenses</Typography>
+                <IconButton
+                  onClick={() =>
+                    setDraftExpenses(
+                      draftExpenses.filter((_, idx) => idx !== i)
+                    )
+                  }
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            ))}
 
-                {!editExpenses ? (
-                    <>
-                        {expenses.map((e, i) => (
-                            <Typography key={i}>
-                                {e.category}: {e.amount}
-                            </Typography>
-                        ))}
+            {expenseError && (
+              <Typography color="error" sx={{ mt: 1 }}>
+                {expenseError}
+              </Typography>
+            )}
 
-                        <Button
-                            variant="outlined"
-                            sx={{ mt: 1 }}
-                            onClick={() => {
-                                setDraftExpenses(expenses);
-                                setEditExpenses(true);
-                                setExpenseError("");
-                            }}
-                        >
-                            Edit
-                        </Button>
-                    </>
-                ) : (
-                    <>
-                        {draftExpenses.map((e, i) => (
-                            <Box sx={{ display: "flex", gap: 2, mt: 1 }} key={i}>
-                                <TextField
-                                    fullWidth
-                                    label="Category"
-                                    value={e.category}
-                                    onChange={(ev) => {
-                                        const rows = [...draftExpenses];
-                                        rows[i].category = ev.target.value;
-                                        setDraftExpenses(rows);
-                                    }}
-                                />
+            <Button
+              startIcon={<AddIcon />}
+              sx={{ mt: 2 }}
+              onClick={() =>
+                setDraftExpenses([
+                  ...draftExpenses,
+                  { category: "", amount: "" }
+                ])
+              }
+            >
+              Add Expense
+            </Button>
 
-                                <TextField
-                                    fullWidth
-                                    type="number"
-                                    label="Amount"
-                                    value={e.amount}
-                                    onChange={(ev) => {
-                                        const rows = [...draftExpenses];
-                                        rows[i].amount = Number(ev.target.value);
-                                        setDraftExpenses(rows);
+            <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                disabled={Boolean(expenseError)}
+                onClick={() => {
+                  setExpenses(draftExpenses);
+                  setEditExpenses(false);
+                }}
+              >
+                Save
+              </Button>
 
-                                        const newTotal = rows.reduce(
-                                            (s, r) => s + Number(r.amount || 0),
-                                            0
-                                        );
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={() => setEditExpenses(false)}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </>
+        )}
 
-                                        if (newTotal > draftBasic.monthlyIncome) {
-                                            setExpenseError(
-                                                "Total expenses exceed monthly income!"
-                                            );
-                                        } else {
-                                            setExpenseError("");
-                                        }
-                                    }}
-                                />
+        <Divider sx={{ my: 3 }} />
 
-                                <IconButton
-                                    onClick={() =>
-                                        setDraftExpenses(
-                                            draftExpenses.filter((_, idx) => idx !== i)
-                                        )
-                                    }
-                                >
-                                    <DeleteIcon />
-                                </IconButton>
-                            </Box>
-                        ))}
+        {/* ---------------- INVESTMENTS ---------------- */}
+        <Typography variant="h6">Investments</Typography>
 
-                        {expenseError && (
-                            <Typography color="error" sx={{ mt: 1 }}>
-                                {expenseError}
-                            </Typography>
-                        )}
+        {!editInvestments ? (
+          <>
+            {investments.map((inv, i) => (
+              <Typography key={i}>
+                {inv.type}: {inv.amount}
+              </Typography>
+            ))}
 
-                        <Button
-                            startIcon={<AddIcon />}
-                            sx={{ mt: 2 }}
-                            onClick={() =>
-                                setDraftExpenses([
-                                    ...draftExpenses,
-                                    { category: "", amount: "" },
-                                ])
-                            }
-                        >
-                            Add Expense
-                        </Button>
+            <Typography sx={{ mt: 2 }}>
+              Return Setting:
+              {returnSetting.fixed
+                ? ` Fixed ${returnSetting.fixed}%`
+                : returnSetting.riskHigh
+                ? " High Risk"
+                : returnSetting.riskLow
+                ? " Low Risk"
+                : " —"}
+            </Typography>
 
-                        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                            <Button
-                                variant="contained"
-                                fullWidth
-                                disabled={Boolean(expenseError)}
-                                onClick={() => {
-                                    setExpenses(draftExpenses);
-                                    setEditExpenses(false);
-                                }}
-                            >
-                                Save
-                            </Button>
+            <Button
+              variant="outlined"
+              sx={{ mt: 1 }}
+              onClick={() => {
+                setDraftInvestments(investments);
+                setDraftRisk(returnSetting);
+                setEditInvestments(true);
+                setInvestError("");
+                setRiskError("");
+              }}
+            >
+              Edit
+            </Button>
+          </>
+        ) : (
+          <>
+            {draftInvestments.map((inv, i) => (
+              <Box key={i} sx={{ display: "flex", gap: 2, mt: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Type"
+                  value={inv.type}
+                  onChange={(ev) => {
+                    const rows = [...draftInvestments];
+                    rows[i].type = ev.target.value;
+                    setDraftInvestments(rows);
+                  }}
+                />
 
-                            <Button
-                                variant="outlined"
-                                fullWidth
-                                onClick={() => setEditExpenses(false)}
-                            >
-                                Cancel
-                            </Button>
-                        </Box>
-                    </>
-                )}
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Amount"
+                  value={inv.amount}
+                  onChange={(ev) => {
+                    const rows = [...draftInvestments];
+                    rows[i].amount = Number(ev.target.value);
+                    setDraftInvestments(rows);
 
-                <Divider sx={{ my: 3 }} />
+                    const totalInvest = rows.reduce(
+                      (s, r) => s + Number(r.amount || 0),
+                      0
+                    );
 
-                {/* ---------------- INVESTMENTS ---------------- */}
-                <Typography variant="h6">Investments</Typography>
+                    if (totalInvest > availableForInvest) {
+                      setInvestError(
+                        "Total investments exceed available balance!"
+                      );
+                    } else {
+                      setInvestError("");
+                    }
+                  }}
+                />
 
-                {!editInvestments ? (
-                    <>
-                        {investments.map((inv, i) => (
-                            <Typography key={i}>
-                                {inv.type}: {inv.amount} (
-                                {(
-                                    (inv.amount / availableForInvest) *
-                                    100
-                                ).toFixed(1)}
-                                %)
-                            </Typography>
-                        ))}
+                <IconButton
+                  onClick={() =>
+                    setDraftInvestments(
+                      draftInvestments.filter((_, idx) => idx !== i)
+                    )
+                  }
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            ))}
 
-                        <Typography sx={{ mt: 2 }}>
-                            Return Setting:
-                            {returnSetting.fixed
-                                ? ` Fixed ${returnSetting.fixed}%`
-                                : returnSetting.riskHigh
-                                    ? " High Risk"
-                                    : returnSetting.riskLow
-                                        ? " Low Risk"
-                                        : " —"}
-                        </Typography>
+            {investError && (
+              <Typography color="error" sx={{ mt: 1 }}>
+                {investError}
+              </Typography>
+            )}
 
-                        <Button
-                            variant="outlined"
-                            sx={{ mt: 1 }}
-                            onClick={() => {
-                                setDraftInvestments(investments);
-                                setDraftRisk(returnSetting);
-                                setEditInvestments(true);
-                                setInvestError("");
-                                setRiskError("");
-                            }}
-                        >
-                            Edit
-                        </Button>
-                    </>
-                ) : (
-                    <>
-                        {/* 投資列表編輯 */}
-                        {draftInvestments.map((inv, i) => (
-                            <Box sx={{ display: "flex", gap: 2, mt: 1 }} key={i}>
-                                <TextField
-                                    fullWidth
-                                    label="Type"
-                                    value={inv.type}
-                                    onChange={(ev) => {
-                                        const rows = [...draftInvestments];
-                                        rows[i].type = ev.target.value;
-                                        setDraftInvestments(rows);
-                                    }}
-                                />
+            <Button
+              startIcon={<AddIcon />}
+              sx={{ mt: 2 }}
+              onClick={() =>
+                setDraftInvestments([
+                  ...draftInvestments,
+                  { type: "", amount: "" }
+                ])
+              }
+            >
+              Add Investment
+            </Button>
 
-                                <TextField
-                                    fullWidth
-                                    type="number"
-                                    label="Amount"
-                                    value={inv.amount}
-                                    onChange={(ev) => {
-                                        const rows = [...draftInvestments];
-                                        rows[i].amount = Number(ev.target.value);
-                                        setDraftInvestments(rows);
+            {/* ---------------- Risk Setting ---------------- */}
+            <Typography variant="h6" sx={{ mt: 3 }}>
+              Risk / Return Setting
+            </Typography>
 
-                                        const totalInvest = rows.reduce(
-                                            (s, r) => s + Number(r.amount || 0),
-                                            0
-                                        );
+            <TextField
+              label="Fixed Annual Return (%)"
+              type="number"
+              fullWidth
+              sx={{ mt: 2 }}
+              value={draftRisk.fixed}
+              disabled={draftRisk.riskHigh || draftRisk.riskLow}
+              onChange={(e) => handleFixedChange(e.target.value)}
+              placeholder="e.g., 5"
+            />
 
-                                        if (totalInvest > availableForInvest) {
-                                            setInvestError(
-                                                "Total investments exceed available balance!"
-                                            );
-                                        } else {
-                                            setInvestError("");
-                                        }
-                                    }}
-                                />
+            <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={draftRisk.riskHigh}
+                    onChange={toggleHigh}
+                  />
+                }
+                label="High Risk (random)"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={draftRisk.riskLow}
+                    onChange={toggleLow}
+                  />
+                }
+                label="Low Risk (random)"
+              />
+            </Box>
 
-                                <Typography sx={{ minWidth: "60px", mt: 1 }}>
-                                    {availableForInvest > 0
-                                        ? `${(
-                                            (inv.amount / availableForInvest) *
-                                            100
-                                        ).toFixed(1)}%`
-                                        : "—"}
-                                </Typography>
+            <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                disabled={Boolean(investError)}
+                onClick={() => {
+                  setInvestments(draftInvestments);
+                  setReturnSetting(draftRisk);
+                  setEditInvestments(false);
+                }}
+              >
+                Save
+              </Button>
 
-                                <IconButton
-                                    onClick={() =>
-                                        setDraftInvestments(
-                                            draftInvestments.filter((_, idx) => idx !== i)
-                                        )
-                                    }
-                                >
-                                    <DeleteIcon />
-                                </IconButton>
-                            </Box>
-                        ))}
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={() => setEditInvestments(false)}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </>
+        )}
 
-                        {/* 顯示投資錯誤 */}
-                        {investError && (
-                            <Typography color="error" sx={{ mt: 1 }}>
-                                {investError}
-                            </Typography>
-                        )}
+        <Divider sx={{ my: 3 }} />
 
-                        <Button
-                            startIcon={<AddIcon />}
-                            sx={{ mt: 2 }}
-                            onClick={() =>
-                                setDraftInvestments([
-                                    ...draftInvestments,
-                                    { type: "", amount: "" },
-                                ])
-                            }
-                        >
-                            Add Investment
-                        </Button>
-
-                        {/* ---------------- 風險設定 ---------------- */}
-                        <Typography variant="h6" sx={{ mt: 3 }}>
-                            Risk / Return Setting
-                        </Typography>
-
-                        <TextField
-                            label="Fixed Annual Return (%)"
-                            type="number"
-                            fullWidth
-                            sx={{ mt: 2 }}
-                            value={draftRisk.fixed}
-                            disabled={draftRisk.riskHigh || draftRisk.riskLow}
-                            onChange={(e) => handleFixedChange(e.target.value)}
-                            placeholder="e.g., 5"
-                        />
-
-                        <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={draftRisk.riskHigh}
-                                        onChange={toggleHigh}
-                                    />
-                                }
-                                label="High Risk (random)"
-                            />
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={draftRisk.riskLow}
-                                        onChange={toggleLow}
-                                    />
-                                }
-                                label="Low Risk (random)"
-                            />
-                        </Box>
-
-                        {riskError && (
-                            <Typography color="error" sx={{ mt: 1 }}>
-                                {riskError}
-                            </Typography>
-                        )}
-
-                        {/* Save / Cancel */}
-                        <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
-                            <Button
-                                variant="contained"
-                                fullWidth
-                                disabled={Boolean(investError)}
-                                onClick={() => {
-                                    setInvestments(draftInvestments);
-                                    setReturnSetting(draftRisk);
-                                    setEditInvestments(false);
-                                }}
-                            >
-                                Save
-                            </Button>
-
-                            <Button
-                                variant="outlined"
-                                fullWidth
-                                onClick={() => setEditInvestments(false)}
-                            >
-                                Cancel
-                            </Button>
-                        </Box>
-                    </>
-                )}
-            </Container>
-        </Box>
-    );
+        {/* ---------------- SAVE ALL ---------------- */}
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          sx={{ mt: 3 }}
+          onClick={handleSaveAll}
+        >
+          Save All Settings
+        </Button>
+      </Container>
+    </Box>
+  );
 }

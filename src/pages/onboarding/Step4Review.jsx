@@ -1,41 +1,57 @@
-import { Box, Container, Typography, Button } from "@mui/material";
+import { Box, Container, Typography, Button, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+
+import { useOnboarding } from "../../context/financialSetting";
+
+// 🔧【新增】後端 API
+import { saveFinancialSetting } from "../../api/financialSetting";
 
 export default function Step4Review() {
     const navigate = useNavigate();
+    const { data } = useOnboarding();   // 🔧 取得 Step1~3 所有資料
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
-    // TODO: 之後從 Step1~3 帶入真正資料（目前是假資料）
-    const basicInfo = { totalAsset: 100000, monthlyIncome: 50000 };
-    const expenses = [{ category: "Food", amount: 5000 }];
-    const investments = [
-        { type: "Stocks", amount: 10000 },
-        { type: "ETF", amount: 5000 }
-    ];
+    const {
+        totalAsset,
+        monthlyIncome,
+        monthlyExpense,
+        expenses,
+        investments,
+        riskMode,
+        fixedReturn
+    } = data;
 
-    // 計算總支出
-    const totalExpenses = expenses.reduce(
-        (sum, e) => sum + Number(e.amount || 0),
-        0
-    );
+    const handleConfirm = async () => {
+        setError("");
+        setSuccess("");
 
-    // 可投資額
-    const availableMoney = basicInfo.monthlyIncome - totalExpenses;
+        try {
+const payload = {
+    user_id: 1,
+    totalAsset: Number(totalAsset),
+    monthlyIncome: Number(monthlyIncome),
+    monthlyExpense: Number(monthlyExpense),
+    riskMode: riskMode,
+    fixedReturn: fixedReturn ? Number(fixedReturn) : null,
+    expenses: expenses || [],
+    investments: investments || [],
+};
 
-    // 計算百分比
-    const getPercent = (amount) => {
-        if (availableMoney <= 0) return "—";
-        return ((amount / availableMoney) * 100).toFixed(1) + "%";
-    };
 
-    const handleConfirm = () => {
-        // TODO: 呼叫後端 API 完成 onboarding
-        console.log("Final Submit:", {
-            basicInfo,
-            expenses,
-            investments,
-        });
+            console.log("📤 Final Submit Payload:", payload);
 
-        navigate("/dashboard");
+            const res = await saveFinancialSetting(payload);
+
+            setSuccess(res.message);
+
+            // 1 秒後導向 Dashboard
+            setTimeout(() => navigate("/dashboard"), 800);
+
+        } catch (err) {
+            setError(err.message || "Submit failed");
+        }
     };
 
     const handleBack = () => {
@@ -53,44 +69,45 @@ export default function Step4Review() {
             }}
         >
             <Container maxWidth="sm">
-                <Typography variant="h5" textAlign="center" fontWeight={600} mb={2}>
+                <Typography variant="h5" textAlign="center" mb={2} fontWeight={600}>
                     Step 4 — Review Your Settings
                 </Typography>
 
+                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+                {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+
                 {/* Basic Info */}
                 <Typography variant="h6" mt={2}>Basic Info</Typography>
-                <Typography>Total Asset: {basicInfo.totalAsset}</Typography>
-                <Typography>Monthly Income: {basicInfo.monthlyIncome}</Typography>
+                <Typography>Total Asset: {totalAsset}</Typography>
+                <Typography>Monthly Income: {monthlyIncome}</Typography>
 
                 {/* Expenses */}
                 <Typography variant="h6" mt={3}>Expenses</Typography>
-                {expenses.map((e, i) => (
+                {expenses?.map((e, i) => (
                     <Typography key={i}>{e.category}: {e.amount}</Typography>
                 ))}
+                <Typography>Total Monthly Expense: {monthlyExpense}</Typography>
 
                 {/* Investments */}
                 <Typography variant="h6" mt={3}>Investments</Typography>
-                {investments.map((inv, i) => (
+                {investments?.map((inv, i) => (
                     <Typography key={i}>
-                        {inv.type}: {inv.amount} ({getPercent(inv.amount)})
+                        {inv.type}: {inv.amount}
                     </Typography>
                 ))}
 
+                <Typography mt={2}>Risk Mode: {riskMode}</Typography>
+                {riskMode === "fixed" && (
+                    <Typography>Fixed Return: {fixedReturn}%</Typography>
+                )}
+
                 {/* Back + Confirm Buttons */}
                 <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
-                    <Button
-                        variant="outlined"
-                        fullWidth
-                        onClick={handleBack}
-                    >
+                    <Button variant="outlined" fullWidth onClick={handleBack}>
                         Back
                     </Button>
 
-                    <Button
-                        variant="contained"
-                        fullWidth
-                        onClick={handleConfirm}
-                    >
+                    <Button variant="contained" fullWidth onClick={handleConfirm}>
                         Confirm & Finish
                     </Button>
                 </Box>

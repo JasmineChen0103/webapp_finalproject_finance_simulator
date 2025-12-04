@@ -15,21 +15,31 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useNavigate } from "react-router-dom";
 
+import { useOnboarding } from "../../context/financialSetting";
+
 export default function Step3Invest() {
     const navigate = useNavigate();
 
-    // 假設來自 Step2 的剩餘可投資金額
-    const availableMoney = 30000;
+    // 🔧【新增】從 Context 拿全資料 + 更新函式
+    const { data, setData } = useOnboarding();
 
+    // 🔧【新增】可投資金額 = Step1 Income - Step2 Expense
+    const availableMoney =
+        Number(data.monthlyIncome || 0) - Number(data.monthlyExpense || 0);
+
+    // 動態投資項目
     const [rows, setRows] = useState([{ type: "", amount: "" }]);
     const [error, setError] = useState("");
 
     // 風險設定
-    const [fixedReturn, setFixedReturn] = useState("");      // 使用者輸入固定%收益
+    const [fixedReturn, setFixedReturn] = useState("");
     const [riskHigh, setRiskHigh] = useState(false);
     const [riskLow, setRiskLow] = useState(false);
 
-    const totalInvest = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    const totalInvest = rows.reduce(
+        (sum, r) => sum + Number(r.amount || 0),
+        0
+    );
 
     const addRow = () => setRows([...rows, { type: "", amount: "" }]);
 
@@ -40,8 +50,12 @@ export default function Step3Invest() {
         newRows[i][key] = value;
         setRows(newRows);
 
-        const newTotal = newRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+        const newTotal = newRows.reduce(
+            (sum, r) => sum + Number(r.amount || 0),
+            0
+        );
 
+        // 🔧【修改】使用 context 的 availableMoney
         if (newTotal > availableMoney) {
             setError("Your investment amount exceeds available balance!");
         } else {
@@ -49,7 +63,7 @@ export default function Step3Invest() {
         }
     };
 
-    // 處理風險模式互斥行為
+    // 風險互斥邏輯
     const handleFixedChange = (value) => {
         setFixedReturn(value);
         if (value !== "") {
@@ -89,10 +103,24 @@ export default function Step3Invest() {
 
         setError("");
 
-        console.log("Step3 Investments:", rows);
-        console.log("Return Setting:", {
-            fixedReturn: fixedReturn ? fixedReturn + "%" : null,
-            riskMode: riskHigh ? "High" : riskLow ? "Low" : "Fixed",
+        // 🔧【新增】將 Step3 的資料暫存到 Context
+        setData((prev) => ({
+            ...prev,
+            investments: rows,
+            totalInvestment: totalInvest,
+            riskMode: riskHigh
+                ? "high"
+                : riskLow
+                ? "low"
+                : "fixed",
+            fixedReturn: fixedReturn || null,
+        }));
+
+        console.log("Step3 Saved to Context:", {
+            investments: rows,
+            totalInvestment: totalInvest,
+            riskMode: riskHigh ? "high" : riskLow ? "low" : "fixed",
+            fixedReturn,
         });
 
         navigate("/onboarding/step4");
@@ -113,7 +141,12 @@ export default function Step3Invest() {
             }}
         >
             <Container maxWidth="sm">
-                <Typography variant="h5" textAlign="center" mb={3} fontWeight={600}>
+                <Typography
+                    variant="h5"
+                    textAlign="center"
+                    mb={3}
+                    fontWeight={600}
+                >
                     Step 3 — Investment Settings
                 </Typography>
 
@@ -177,7 +210,6 @@ export default function Step3Invest() {
                         Risk / Return Setting
                     </Typography>
 
-                    {/* 固定年化報酬率（％） */}
                     <TextField
                         label="Fixed Annual Return (%)"
                         type="number"
@@ -189,7 +221,6 @@ export default function Step3Invest() {
                         placeholder="e.g., 5"
                     />
 
-                    {/* 高風險 & 低風險 */}
                     <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
                         <FormControlLabel
                             control={
