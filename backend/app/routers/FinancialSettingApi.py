@@ -23,7 +23,7 @@ def post_financial_setting(request: FinancialSettingReq):
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to update financial setting.",
+            detail="Failed to update financial setting. Invalid data.",
         )
     return {"message": "Financial setting updated successfully."}
 
@@ -33,6 +33,6 @@ def get_financial_setting(user_id: int) -> FinancialSettingResp:
     if financial_setting is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Financial setting not found.",
+            detail="Financial setting not found. Financial setting may not be set up for this user.",
         )
     return financial_setting
