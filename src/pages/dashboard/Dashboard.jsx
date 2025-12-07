@@ -1,11 +1,12 @@
+import React from "react";
+import { useState, useEffect } from "react";
 import { Box, Typography, Grid } from "@mui/material";
 import StatCards from "../../components/Dashboard/StatCards";
 import AssetLineChart from "../../components/Dashboard/AssetLineChart";
 import ExpensePieChart from "../../components/Dashboard/ExpensePieChart";
+import { getFinancialSetting } from "../../api/financialSetting";
 import ScenarioCard from "../../components/Scenario/ScenarioCard"; // 新增這行
 import ScenarioFullEditModal from "../../components/Scenario/ScenarioFullEditModal"; // 確認有引入
-import React from "react";
-
 const scenarios = [
     {
         id: 1,
@@ -26,9 +27,9 @@ const scenarios = [
         investments: [{ amount: 10000 }]
     }
 ];
-
 export default function Dashboard() {
-    const [editOpen, setEditOpen] = React.useState(false);
+    const [simData, setSimData] = useState(null);
+ const [editOpen, setEditOpen] = React.useState(false);
     const [editScenario, setEditScenario] = React.useState(null);
     // 預設選第一個
     const [selectedScenario, setSelectedScenario] = React.useState(scenarios[0]);
@@ -49,42 +50,97 @@ export default function Dashboard() {
         // 目前只會關閉 modal
         setEditOpen(false);
     };
+    useEffect(() => {
+        const loadDashboard = async () => {
+            try {
+                const user = JSON.parse(localStorage.getItem("user"));
+                if (!user?.user_id) return;
+
+                const settings = await getFinancialSetting(user.user_id);
+
+                const expensesObj = settings.expenses.reduce((acc, curr) => {
+                    acc[curr.category] = curr.amount;
+                    return acc;
+                }, {});
+
+                const response = await fetch("http://localhost:8000/simulate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        months: 36,
+                        income_monthly: settings.monthlyIncome,
+                        expenses: expensesObj,
+                        invest_ratio: 0.2,
+                        market_model: {
+                            mode: "fixed",
+                            fixed_annual_return: settings.fixedReturn
+                        },
+                        scenarios: [],
+                        paths: 1000,
+                        seed: 12345
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`模擬失敗: ${response.status}`);
+                }
+
+                const result = await response.json();
+                setSimData(result);
+            } catch (err) {
+                console.error("Dashboard 載入失敗:", err);
+            }
+        };
+
+        loadDashboard();
+    }, []);
+
     return (
         <Box sx={{ py: 3 }}>
+            {/* 第一排：StatCards 滿版 */}
+            <Grid container spacing={2} sx={{ width: "100%", mb: 2 }}>
+                {/* 注意：size 必須寫在標籤括號內，不能單獨放在大括號裡 */}
+                <Grid size={{ xs: 12 }}>
+                    <StatCards data={simData?.statCards} />
+                </Grid>
+            </Grid>
 
-            {/* 1. 上方 Cards */}
-            <Box sx={{ mb: 3 }}>
-                <StatCards />
-            </Box>
+            {/* 第二排：AssetLineChart */}
+            <Grid container spacing={2} sx={{ width: "100%", mb: 2 }}>
+                {/* 修正點：確保是 size={{ ... }} 而不是直接傳物件 */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <AssetLineChart data={simData?.lineChart} sx={{ height: '100%' }} />
+                </Grid>
 
-            {/* 2. 折線圖區塊 */}
-            <Box sx={{ display: 'flex', width: '100%', mb: 2, gap: 1, flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <AssetLineChart sx={{ height: '100%' }} />
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <AssetLineChart scenario={selectedScenario} sx={{ height: '100%' }} />
-                </Box>
-            </Box>
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <AssetLineChart data={simData?.lineChart} sx={{ height: '100%' }} />
+                </Grid>
+            </Grid>
 
-            {/* 3. 圓餅圖 + ScenarioCard 並排 */}
-            <Box sx={{ display: 'flex', width: '100%', gap: 2, flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
-                <Box sx={{ width: { xs: '100%', md: '33.3%' }, minWidth: 0 }}>
-                    <ExpensePieChart sx={{ height: '100%' }} />
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'stretch', gap: 2 }}>
-                    {/* 多個 ScenarioCard */}
-                    {scenarios.map(scenario => (
-                        <ScenarioCard
-                            key={scenario.id}
-                            scenario={scenario}
-                            selectedId={selectedScenario.id}
-                            onSelect={handleSelect}
-                            onEdit={handleEdit}
-                        />
-                    ))}
-                </Box>
-            </Box>
+            {/* 第三排：圓餅圖 + 情境卡並排 */}
+            <Grid container spacing={2} sx={{ width: "100%", minWidth: 0 }}>
+                {/* 左側：圓餅圖 */}
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <ExpensePieChart data={simData?.pieChart} sx={{ height: '100%' }} />
+                </Grid>
+
+                {/* 右側：情境卡列表 */}
+                <Grid size={{ xs: 12, md: 8 }}>
+                    <Box sx={{ display: 'flex', gap: 2, height: '100%', flexWrap: 'wrap' }}>
+                        {scenarios.map(scenario => (
+                            <Box key={scenario.id} sx={{ flex: '1 1 300px', minWidth: 0 }}>
+                                <ScenarioCard
+                                    scenario={scenario}
+                                    selectedId={selectedScenario.id}
+                                    onSelect={handleSelect}
+                                    onEdit={handleEdit}
+                                />
+                            </Box>
+                        ))}
+                    </Box>
+                </Grid>
+            </Grid>
+
             {/* 編輯情境 Modal */}
             <ScenarioFullEditModal
                 open={editOpen}
