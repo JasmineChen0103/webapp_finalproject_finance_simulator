@@ -13,8 +13,8 @@ __all__ = [
 
 
 class Expenses(BaseModel):
-    """每月支出結構（可先用這幾個欄位，如果之後要開放更多就再加）。"""
-    List[Dict[str, float]]
+    category: str
+    amount: float = Field(..., ge=0)
 
 
 class MarketModel(BaseModel):
@@ -60,7 +60,7 @@ class Scenario(BaseModel):
 class SimulationRequest(BaseModel):
     months: int = Field(36, ge=1, le=600)
     income_monthly: float = Field(..., ge=0)
-    expenses: Expenses
+    expenses: List[Expenses]
     invest_ratio: float = Field(0.2, ge=0, le=1)
     market_model: MarketModel
     scenarios: List[Scenario] = []         # 額外情境（Baseline 會自動加）

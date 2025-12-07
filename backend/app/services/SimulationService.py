@@ -63,8 +63,8 @@ class EventCore:
     delta: Optional[float] = None        # income_delta / invest_ratio_delta 用
 
 
-def expenses_to_dict(expenses: Expenses) -> Dict[str, float]:
-    return expenses.model_dump()
+def expenses_to_dict(expenses: List[Expenses]) -> Dict[str, float]:
+    return {item.category: item.amount for item in expenses}
 
 
 def apply_expenses_delta(
