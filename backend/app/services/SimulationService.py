@@ -12,6 +12,9 @@ except ImportError:  # Allow running without package context
 
 __all__ = ["simulate_financial_plan"]
 
+# --- 常數定義 ---
+SIMULATION_MONTHS = 120  # 固定模擬10年（120個月）
+
 # --- 新增的顏色配置與輔助函數 ---
 
 # 為支出類別提供固定的顏色調色板 (Tailwind 顏色模擬)
@@ -33,7 +36,7 @@ def _determine_trend(diff: float) -> Literal["up", "down", "flat"]:
     else:
         return "flat"
 
-# --- 核心數據模型與邏輯 (與原始代碼相同，僅用於上下文) ---
+# --- 核心數據模型與邏輯 ---
 
 MarketMode = Literal["fixed", "normal"]
 
@@ -323,7 +326,13 @@ def _build_events(events: Optional[List[Event]], months: int) -> List[EventCore]
 
 
 def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
-    # 1. 執行核心模擬 (這部分與原始程式碼相同)
+    """
+    執行財務規劃模擬，固定為10年（120個月）
+    """
+    # 使用固定的模擬期間
+    months = SIMULATION_MONTHS
+    
+    # 1. 執行核心模擬
     base_expenses = expenses_to_dict(request.expenses)
     scenarios: List[Scenario] = [Scenario(name="Baseline")] + request.scenarios
 
@@ -352,11 +361,11 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
         )
 
         # 轉換 events
-        events_core = _build_events(scenario.events, request.months)
+        events_core = _build_events(scenario.events, months)
 
         # 跑 Monte Carlo
         asset_paths, median, p05, p95 = run_paths(
-            months=request.months,
+            months=months,
             income_monthly=request.income_monthly,
             expenses_monthly=expenses_adjusted,
             invest_ratio=invest_ratio,
@@ -373,7 +382,7 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
         results.append(
             {
                 "scenario": scenario.name,
-                "months": list(range(1, request.months + 1)),
+                "months": list(range(1, months + 1)),
                 "median": median.tolist(),
                 "p05": p05.tolist(),
                 "p95": p95.tolist(),
@@ -387,7 +396,7 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
             }
         )
 
-    # 組期末資產箱形圖 / summary (與原始代碼相同，僅用於內部計算)
+    # 組期末資產箱形圖 / summary
     summaries: List[Dict[str, Any]] = []
     first_asset = results[0]["median"][0] if results[0]["median"] else 0.0 # 初始資產
 
@@ -395,7 +404,7 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
         values_np = np.asarray(values, dtype=float)
         stats = box_stats(values_np)
         last_med = float(np.median(values_np))
-        cagr = realized_cagr(first_asset, last_med, request.months)
+        cagr = realized_cagr(first_asset, last_med, months)
         summaries.append(
             {
                 "scenario": name,
@@ -406,23 +415,22 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
         
     # 2. 轉換為前端所需格式
 
-    # 2.1. 轉換 lineChart 數據
+    # 2.1. 轉換 lineChart 數據（每個情境都有完整的 P05/P50/P95）
     categories = results[0]["months"] if results else []
     
-    # currentPlan: 預設為 Baseline 中位數 P50
-    current_plan_data = results[0]["median"] if results else []
-
-    # projectedAsset: 如果有多個情境，用第一個情境的中位數；否則用 Baseline P95 (樂觀情境)
-    projected_asset_data = []
-    if len(results) > 1:
-        projected_asset_data = results[1]["median"]
-    elif results:
-        projected_asset_data = results[0]["p95"]
+    # 構建 scenarios 列表，每個情境包含 median, p05, p95
+    scenarios_data = []
+    for result in results:
+        scenarios_data.append({
+            "name": result["scenario"],
+            "median": result["median"],
+            "confidenceUpper": result["p95"],
+            "confidenceLower": result["p05"],
+        })
 
     line_chart_data = {
         "categories": categories,
-        "currentPlan": current_plan_data,
-        "projectedAsset": projected_asset_data,
+        "scenarios": scenarios_data,
     }
 
     # 2.2. 轉換 pieChart 數據
