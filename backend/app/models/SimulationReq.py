@@ -40,7 +40,7 @@ class Event(BaseModel):    ### 期間型事件
                   "invest_ratio_delta", "market_override"] 
     label: Optional[str] = None ## 不影響運算
     amount: Optional[float] = None ## expense, market_ovveride用
-    delta: Optional[float] = None ## income/invest_ratio_delta用  ## 沒填end的話就是永久變動為
+    delta: Optional[float] = None ## income/invest_ratio_delta用  ## 沒填end的話就是永久變動
 
 
 class Scenario(BaseModel):
@@ -58,7 +58,7 @@ class Scenario(BaseModel):
 
 
 class SimulationRequest(BaseModel):
-    months: int = Field(36, ge=1, le=600)
+    initial_assets: float = Field(..., ge=0)  # 新增：初始總資產（必填）
     income_monthly: float = Field(..., ge=0)
     expenses: List[Expenses]
     invest_ratio: float = Field(0.2, ge=0, le=1)

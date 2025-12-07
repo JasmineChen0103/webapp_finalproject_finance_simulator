@@ -166,6 +166,7 @@ def run_paths(
     market: MarketModelCore,
     events: List[EventCore],
     paths: int,
+    initial_assets: float = 0.0,
     seed: Optional[int] = None,
     auto_liquidate: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -180,10 +181,15 @@ def run_paths(
     monthly_returns = gen_monthly_returns(market, months, paths, rng)
 
     # 狀態變數
-    cash = np.zeros(paths)                      # C_t
-    portfolio = np.zeros(paths)                 # P_t
-    alpha = np.full(paths, np.clip(invest_ratio, 0.0, 1.0)) # 投資比 α_t
-    income = np.full(paths, income_monthly)     # I_t
+    # 初始資產按投資比例分配
+    initial_invest_ratio = np.clip(invest_ratio, 0.0, 1.0)
+    initial_cash = initial_assets * (1.0 - initial_invest_ratio)
+    initial_portfolio = initial_assets * initial_invest_ratio
+    
+    cash = np.full(paths, initial_cash)          # C_t (初始現金)
+    portfolio = np.full(paths, initial_portfolio) # P_t (初始投資組合)
+    alpha = np.full(paths, initial_invest_ratio)  # 投資比 α_t
+    income = np.full(paths, income_monthly)      # I_t
     base_expense = month_budget_total(expenses_monthly)     # 固定月支出
     
     # 事件依月份分組
@@ -372,6 +378,7 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
             market=market_core,
             events=events_core,
             paths=request.paths,
+            initial_assets=request.initial_assets,
             seed=request.seed,
         )
 
@@ -398,7 +405,8 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
 
     # 組期末資產箱形圖 / summary
     summaries: List[Dict[str, Any]] = []
-    first_asset = results[0]["median"][0] if results[0]["median"] else 0.0 # 初始資產
+    # 使用初始資產作為 CAGR 計算的起點
+    first_asset = request.initial_assets
 
     for name, values in final_assets_all:
         values_np = np.asarray(values, dtype=float)
