@@ -21,15 +21,7 @@ export default function Index() {
             </Typography>
 
             <Button variant="contained" onClick={() => navigate("/login")}>
-                Go to Login
-            </Button>
-
-            {/* 測試 Onboarding */}
-            <Button
-                variant="outlined"
-                onClick={() => navigate("/onboarding/step1")}
-            >
-                Preview Onboarding
+                Go to Login/Register
             </Button>
         </Box>
     );

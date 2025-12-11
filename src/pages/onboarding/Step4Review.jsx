@@ -2,14 +2,17 @@ import { Box, Container, Typography, Button, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-import { useOnboarding } from "../../context/financialSetting";
+import { useOnboarding } from "../../context/OnboardingContext";
+import { useAuth } from "../../context/AuthContext";
 
-// 🔧【新增】後端 API
+// 後端 API
 import { saveFinancialSetting } from "../../api/financialSetting";
 
 export default function Step4Review() {
     const navigate = useNavigate();
-    const { data } = useOnboarding();   // 🔧 取得 Step1~3 所有資料
+    const { data } = useOnboarding();
+    const { user } = useAuth();
+    console.log("[Step4] onboarding =", data);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
@@ -17,8 +20,8 @@ export default function Step4Review() {
         totalAsset,
         monthlyIncome,
         monthlyExpense,
-        expenses,
-        investments,
+        expenses = [],
+        investments = [],
         riskMode,
         fixedReturn
     } = data;
@@ -28,16 +31,16 @@ export default function Step4Review() {
         setSuccess("");
 
         try {
-const payload = {
-    user_id: 1,
-    totalAsset: Number(totalAsset),
-    monthlyIncome: Number(monthlyIncome),
-    monthlyExpense: Number(monthlyExpense),
-    riskMode: riskMode,
-    fixedReturn: fixedReturn ? Number(fixedReturn) : null,
-    expenses: expenses || [],
-    investments: investments || [],
-};
+            const payload = {
+                user_id: user?.user_id,
+                totalAsset: Number(totalAsset),
+                monthlyIncome: Number(monthlyIncome),
+                monthlyExpense: Number(monthlyExpense),
+                riskMode: riskMode,
+                fixedReturn: fixedReturn ? Number(fixedReturn) : null,
+                expenses: expenses,
+                investments: investments,
+            };
 
 
             console.log("📤 Final Submit Payload:", payload);
@@ -83,25 +86,32 @@ const payload = {
 
                 {/* Expenses */}
                 <Typography variant="h6" mt={3}>Expenses</Typography>
-                {expenses?.map((e, i) => (
-                    <Typography key={i}>{e.category}: {e.amount}</Typography>
+                {expenses.map((e, i) => (
+                    <Typography key={i}>
+                        {e.category}: {e.amount}
+                    </Typography>
                 ))}
-                <Typography>Total Monthly Expense: {monthlyExpense}</Typography>
+                <Typography fontWeight={600}>
+                    Total Expense: {monthlyExpense}
+                </Typography>
 
                 {/* Investments */}
                 <Typography variant="h6" mt={3}>Investments</Typography>
-                {investments?.map((inv, i) => (
+                {investments.map((inv, i) => (
                     <Typography key={i}>
                         {inv.type}: {inv.amount}
                     </Typography>
                 ))}
 
-                <Typography mt={2}>Risk Mode: {riskMode}</Typography>
+                <Typography mt={2} fontWeight={600}>
+                    Risk Mode: {riskMode}
+                </Typography>
+
                 {riskMode === "fixed" && (
                     <Typography>Fixed Return: {fixedReturn}%</Typography>
                 )}
 
-                {/* Back + Confirm Buttons */}
+                {/* Buttons */}
                 <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
                     <Button variant="outlined" fullWidth onClick={handleBack}>
                         Back

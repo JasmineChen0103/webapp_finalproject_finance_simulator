@@ -13,9 +13,12 @@ import { useNavigate } from "react-router-dom";
 
 // 引入 API 呼叫
 import { loginApi } from "../../api/auth";
+import { useAuth } from "../../context/AuthContext";
+import { getFinancialSetting } from "../../api/financialSetting";
 
 export default function Login() {
     const navigate = useNavigate();
+    const { setUser } = useAuth();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -29,11 +32,32 @@ export default function Login() {
 
             console.log("Login success:", user);
 
+            setUser({
+                user_id: user.user_id,
+                username: user.username,
+            });
+
+
             // 儲存登入資訊（之後 dashboard 會用）
             localStorage.setItem("user", JSON.stringify(user));
 
-            // 登入成功 → 前往 dashboard
-            navigate("/dashboard");
+            // Try to get financial settings
+            try {
+                const settings = await getFinancialSetting(user.user_id);
+
+                // Found settings → go to dashboard
+                navigate("/dashboard");
+            } catch (err) {
+                // If 404 → no settings → onboarding
+                if (err.message?.includes("not found")) {
+                    navigate("/onboarding/step1");
+                    return;
+                }
+
+                // Other errors → show error
+                throw err;
+            }
+
         } catch (err) {
             console.error("Login Error:", err);
             alert("Login failed");

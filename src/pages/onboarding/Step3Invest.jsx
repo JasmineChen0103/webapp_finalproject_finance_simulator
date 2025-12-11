@@ -15,26 +15,28 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useNavigate } from "react-router-dom";
 
-import { useOnboarding } from "../../context/financialSetting";
+import { useOnboarding } from "../../context/OnboardingContext";
 
 export default function Step3Invest() {
     const navigate = useNavigate();
 
-    // 🔧【新增】從 Context 拿全資料 + 更新函式
-    const { data, setData } = useOnboarding();
+    // 取得 context
+    const { data, update } = useOnboarding();
 
-    // 🔧【新增】可投資金額 = Step1 Income - Step2 Expense
+    // 可投資金額 = Income - Expense
     const availableMoney =
         Number(data.monthlyIncome || 0) - Number(data.monthlyExpense || 0);
 
     // 動態投資項目
-    const [rows, setRows] = useState([{ type: "", amount: "" }]);
+    const [rows, setRows] = useState(
+        data.investments?.length ? data.investments : [{ type: "", amount: "" }]
+    );
     const [error, setError] = useState("");
 
     // 風險設定
-    const [fixedReturn, setFixedReturn] = useState("");
-    const [riskHigh, setRiskHigh] = useState(false);
-    const [riskLow, setRiskLow] = useState(false);
+    const [fixedReturn, setFixedReturn] = useState(data.fixedReturn || "");
+    const [riskHigh, setRiskHigh] = useState(data.riskMode === "high");
+    const [riskLow, setRiskLow] = useState(data.riskMode === "low");
 
     const totalInvest = rows.reduce(
         (sum, r) => sum + Number(r.amount || 0),
@@ -55,7 +57,6 @@ export default function Step3Invest() {
             0
         );
 
-        // 🔧【修改】使用 context 的 availableMoney
         if (newTotal > availableMoney) {
             setError("Your investment amount exceeds available balance!");
         } else {
@@ -103,24 +104,12 @@ export default function Step3Invest() {
 
         setError("");
 
-        // 🔧【新增】將 Step3 的資料暫存到 Context
-        setData((prev) => ({
-            ...prev,
-            investments: rows,
-            totalInvestment: totalInvest,
-            riskMode: riskHigh
-                ? "high"
-                : riskLow
-                ? "low"
-                : "fixed",
-            fixedReturn: fixedReturn || null,
-        }));
-
-        console.log("Step3 Saved to Context:", {
+        // 更新到 Context
+        update({
             investments: rows,
             totalInvestment: totalInvest,
             riskMode: riskHigh ? "high" : riskLow ? "low" : "fixed",
-            fixedReturn,
+            fixedReturn: fixedReturn || null,
         });
 
         navigate("/onboarding/step4");
@@ -141,18 +130,13 @@ export default function Step3Invest() {
             }}
         >
             <Container maxWidth="sm">
-                <Typography
-                    variant="h5"
-                    textAlign="center"
-                    mb={3}
-                    fontWeight={600}
-                >
+                <Typography variant="h5" textAlign="center" fontWeight={600} mb={3}>
                     Step 3 — Investment Settings
                 </Typography>
 
-                {error && <Alert severity="warning" sx={{ mb: 2 }}>{error}</Alert>}
+                {error && <Alert severity="warning">{error}</Alert>}
 
-                {/* ----------------- 投資列表 ----------------- */}
+                {/* 投資項目列表 */}
                 {rows.map((row, idx) => {
                     const percent =
                         availableMoney > 0 && Number(row.amount) > 0
@@ -161,13 +145,13 @@ export default function Step3Invest() {
 
                     return (
                         <Box
-                            sx={{ display: "flex", gap: 2, alignItems: "center", mb: 2 }}
                             key={idx}
+                            sx={{ display: "flex", gap: 2, alignItems: "center", mb: 2 }}
                         >
                             <TextField
                                 select
-                                label="Investment Type"
                                 fullWidth
+                                label="Investment Type"
                                 value={row.type}
                                 onChange={(e) => updateRow(idx, "type", e.target.value)}
                             >
@@ -178,9 +162,9 @@ export default function Step3Invest() {
                             </TextField>
 
                             <TextField
+                                fullWidth
                                 type="number"
                                 label="Amount"
-                                fullWidth
                                 value={row.amount}
                                 onChange={(e) => updateRow(idx, "amount", e.target.value)}
                             />
@@ -196,7 +180,7 @@ export default function Step3Invest() {
                     );
                 })}
 
-                <Button startIcon={<AddIcon />} onClick={addRow} variant="contained">
+                <Button startIcon={<AddIcon />} variant="contained" onClick={addRow}>
                     Add Investment
                 </Button>
 
@@ -204,7 +188,7 @@ export default function Step3Invest() {
                     Total Investment: {totalInvest}
                 </Typography>
 
-                {/* ----------------- 風險模式設定 ----------------- */}
+                {/* 風險模式設定 */}
                 <Box sx={{ mt: 4 }}>
                     <Typography variant="h6" fontWeight={600}>
                         Risk / Return Setting
@@ -218,39 +202,25 @@ export default function Step3Invest() {
                         value={fixedReturn}
                         onChange={(e) => handleFixedChange(e.target.value)}
                         disabled={riskHigh || riskLow}
-                        placeholder="e.g., 5"
                     />
 
                     <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
                         <FormControlLabel
-                            control={
-                                <Checkbox checked={riskHigh} onChange={toggleHighRisk} />
-                            }
-                            label="High Risk (random)"
+                            control={<Checkbox checked={riskHigh} onChange={toggleHighRisk} />}
+                            label="High Risk (Random)"
                         />
-
                         <FormControlLabel
-                            control={
-                                <Checkbox checked={riskLow} onChange={toggleLowRisk} />
-                            }
-                            label="Low Risk (random)"
+                            control={<Checkbox checked={riskLow} onChange={toggleLowRisk} />}
+                            label="Low Risk (Random)"
                         />
                     </Box>
                 </Box>
 
                 {/* Back / Next */}
-                <Box
-                    sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 2,
-                        mt: 4,
-                    }}
-                >
+                <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
                     <Button variant="outlined" fullWidth onClick={handleBack}>
                         Back
                     </Button>
-
                     <Button variant="contained" fullWidth onClick={handleNext}>
                         Next
                     </Button>

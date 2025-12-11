@@ -8,29 +8,37 @@ import {
   Alert,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { useOnboarding } from "../../context/financialSetting";
+import { useOnboarding } from "../../context/OnboardingContext";
 
 
 export default function Step1Basic() {
   const navigate = useNavigate();
-  const { data, setData } = useOnboarding();
+  const { data, update } = useOnboarding();
+
+  // local form states
+  const [asset, setAsset] = useState(data.totalAsset || "");
+  const [income, setIncome] = useState(data.monthlyIncome || "");
 
   // 本地驗證用，不會直接送 API
   const [error, setError] = useState("");
 
   const handleNext = () => {
     // 基本驗證
-    if (!data.totalAsset || !data.monthlyIncome) {
+    if (!asset || !income) {
       setError("Total asset and monthly income are required.");
       return;
     }
 
-    if (Number(data.totalAsset) < 0 || Number(data.monthlyIncome) <= 0) {
+    if (Number(asset) < 0 || Number(income) <= 0) {
       setError("Values must be positive numbers.");
       return;
     }
 
-    setError("");
+    // 更新 context
+    update({
+      totalAsset: asset,
+      monthlyIncome: income,
+    });
 
     // Step1 的資料已經存到 context → 不用 call API
     navigate("/onboarding/step2");
@@ -46,29 +54,20 @@ export default function Step1Basic() {
         backgroundColor: "#fafafa",
       }}
     >
-      <Container maxWidth="xs">
-        <Typography variant="h5" fontWeight={600} textAlign="center" mb={3}>
-          Step 1 — Basic Financial Settings
+      <Container maxWidth="sm">
+        <Typography variant="h5" textAlign="center" fontWeight={600} mb={3}>
+          Step 1 — Basic Financial Info
         </Typography>
 
-        {error && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+        {error && <Alert severity="warning">{error}</Alert>}
 
         <TextField
           fullWidth
           label="Total Asset"
           type="number"
           margin="normal"
-          value={data.totalAsset}
-          onChange={(e) =>
-            setData((prev) => ({
-              ...prev,
-              totalAsset: e.target.value,
-            }))
-          }
+          value={asset}
+          onChange={(e) => setAsset(e.target.value)}
         />
 
         <TextField
@@ -76,21 +75,11 @@ export default function Step1Basic() {
           label="Monthly Income"
           type="number"
           margin="normal"
-          value={data.monthlyIncome}
-          onChange={(e) =>
-            setData((prev) => ({
-              ...prev,
-              monthlyIncome: e.target.value,
-            }))
-          }
+          value={income}
+          onChange={(e) => setIncome(e.target.value)}
         />
 
-        <Button
-          fullWidth
-          variant="contained"
-          sx={{ mt: 3 }}
-          onClick={handleNext}
-        >
+        <Button variant="contained" fullWidth sx={{ mt: 3 }} onClick={handleNext}>
           Next
         </Button>
       </Container>

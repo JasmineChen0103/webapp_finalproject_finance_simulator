@@ -13,15 +13,15 @@ import AddIcon from "@mui/icons-material/Add";
 import { useNavigate } from "react-router-dom";
 
 
-import { useOnboarding } from "../../context/financialSetting";
+import { useOnboarding } from "../../context/OnboardingContext";
 
 export default function Step2Expenses() {
     const navigate = useNavigate();
 
     // 🔧【新增】從 Step1 拿 monthlyIncome，並存 Step2 結果
-    const { data, setData } = useOnboarding();
+    const { data, update } = useOnboarding();
 
-    const [rows, setRows] = useState([{ category: "", amount: "" }]);
+    const [rows, setRows] = useState(data.expenses?.length ? data.expenses : [{ category: "", amount: "" }]);
     const [error, setError] = useState("");
 
     // 計算總支出
@@ -39,11 +39,12 @@ export default function Step2Expenses() {
         newRows[index][key] = value;
         setRows(newRows);
 
-        // 🔧【修改】使用 data.monthlyIncome
+        // 使用 data.monthlyIncome
         const newTotal = newRows.reduce(
             (sum, r) => sum + Number(r.amount || 0),
             0
         );
+
         if (newTotal > Number(data.monthlyIncome)) {
             setError("Your monthly expenses exceed your monthly income!");
         } else {
@@ -62,16 +63,12 @@ export default function Step2Expenses() {
             return;
         }
 
-        setError("");
-
-        // 🔧【新增】將支出暫存到 context（Step3 & Step4 需要用）
-        setData((prev) => ({
-            ...prev,
+        update({
             expenses: rows,
-            monthlyExpense: totalExpenses, // 🔧 通常後端需要總支出
-        }));
+            monthlyExpense: totalExpenses
+        });
 
-        console.log("Step2 Expenses Saved To Context:", rows);
+        console.log("Step2 Saved:", rows);
 
         navigate("/onboarding/step3");
     };
@@ -116,9 +113,7 @@ export default function Step2Expenses() {
                             fullWidth
                             label="Category"
                             value={row.category}
-                            onChange={(e) =>
-                                updateRow(idx, "category", e.target.value)
-                            }
+                            onChange={(e) => updateRow(idx, "category", e.target.value)}
                         />
 
                         <TextField
@@ -126,15 +121,10 @@ export default function Step2Expenses() {
                             type="number"
                             label="Amount"
                             value={row.amount}
-                            onChange={(e) =>
-                                updateRow(idx, "amount", e.target.value)
-                            }
+                            onChange={(e) => updateRow(idx, "amount", e.target.value)}
                         />
 
-                        <IconButton
-                            onClick={() => deleteRow(idx)}
-                            color="error"
-                        >
+                        <IconButton color="error" onClick={() => deleteRow(idx)}>
                             <DeleteIcon />
                         </IconButton>
                     </Box>
@@ -161,19 +151,11 @@ export default function Step2Expenses() {
                         mt: 4,
                     }}
                 >
-                    <Button
-                        variant="outlined"
-                        fullWidth
-                        onClick={handleBack}
-                    >
+                    <Button fullWidth variant="outlined" onClick={handleBack}>
                         Back
                     </Button>
 
-                    <Button
-                        variant="contained"
-                        fullWidth
-                        onClick={handleNext}
-                    >
+                    <Button fullWidth variant="contained" onClick={handleNext}>
                         Next
                     </Button>
                 </Box>
