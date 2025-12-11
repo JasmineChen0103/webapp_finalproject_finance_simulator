@@ -41,7 +41,6 @@ export default function Navbar() {
                 {/* 右側導頁按鈕 */}
                 <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                     <Button color="inherit" onClick={() => navigate("/dashboard")}>Dashboard</Button>
-                    <Button color="inherit" onClick={() => navigate("/scenario")}>Scenario</Button>
 
                     {/* Avatar 下拉選單 */}
                     <IconButton onClick={handleOpenMenu} sx={{ p: 0 }}>
