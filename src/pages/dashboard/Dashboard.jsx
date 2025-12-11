@@ -58,22 +58,24 @@ export default function Dashboard() {
 
                 const settings = await getFinancialSetting(user.user_id);
 
-                const expensesObj = settings.expenses.reduce((acc, curr) => {
-                    acc[curr.category] = curr.amount;
-                    return acc;
-                }, {});
+                // 將 expenses 轉換為後端期望的格式：[{category: "...", amount: ...}]
+                const expensesArray = settings.expenses.map(exp => ({
+                    category: exp.category,
+                    amount: exp.amount
+                }));
 
                 const response = await fetch("http://localhost:8000/simulate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        months: 36,
+                        initial_assets: settings.totalAsset || 0,  // 初始總資產（必填）
                         income_monthly: settings.monthlyIncome,
-                        expenses: expensesObj,
-                        invest_ratio: 0.2,
+                        expenses: expensesArray,  // 使用陣列格式
+                        invest_ratio: settings.investRatio || 0.2,
                         market_model: {
                             mode: "fixed",
-                            fixed_annual_return: settings.fixedReturn
+                            profile: "custom",
+                            fixed_annual_return: settings.fixedReturn || 0.05
                         },
                         scenarios: [],
                         paths: 1000,
