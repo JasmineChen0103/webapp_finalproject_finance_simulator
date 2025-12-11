@@ -7,7 +7,6 @@ import Step2Expenses from "../pages/onboarding/Step2Expenses";
 import Step3Invest from "../pages/onboarding/Step3Invest";
 import Step4Review from "../pages/onboarding/Step4Review";
 import Dashboard from "../pages/dashboard/Dashboard";
-import Scenario from "../pages/scenario/Scenario";
 import Settings from "../pages/settings/Settings";
 import MainLayout from "../layout/MainLayout";
 
@@ -38,14 +37,6 @@ export default function AppRouter() {
                 }
             />
 
-            <Route
-                path="/scenario"
-                element={
-                    <MainLayout>
-                        <Scenario />
-                    </MainLayout>
-                }
-            />
 
             <Route
                 path="/settings"
