@@ -64,7 +64,7 @@ export default function Dashboard() {
                 events: s.events
             }));
 
-            const response = await fetch("http://localhost:8000/simulate", {
+            const response = await fetch("https://cuddly-lamp-x697jpppv94cprj9-8000.app.github.dev/simulate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -168,66 +168,71 @@ export default function Dashboard() {
     } : null;
 
     return (
-        <Box sx={{ py: 3 }}>
-            {/* 第一排：StatCards */}
-            <Grid container spacing={2} sx={{ width: "100%", mb: 2 }}>
-                <Grid item xs={12}>
-                    <StatCards data={simData?.statCards} />
-                </Grid>
-            </Grid>
-
-            {/* 第二排：左右線圖 */}
-            <Grid container spacing={2} sx={{ width: "100%", mb: 2 }}>
-                {/* 左邊：基本設定 (Baseline) */}
-                <Grid item xs={12} md={6}>
-                    <AssetLineChart 
-                        title="基本設定預測 (Baseline)" 
-                        data={leftChartData} 
-                        isLoading={loading}
-                        sx={{ height: '100%' }} 
-                    />
+        <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}>
+            {/* 中心化容器，限制最大寬度使版面置中且不會拉太寬 */}
+            <Box sx={{ width: '100%', maxWidth: 1200 }}>
+                {/* 第一排：StatCards */}
+                <Grid container spacing={2} sx={{ width: "100%", mb: 2 }} justifyContent="center">
+                    <Grid item xs={12}>
+                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                            <StatCards data={simData?.statCards} />
+                        </Box>
+                    </Grid>
                 </Grid>
 
-                {/* 右邊：情境模擬 (Selected Scenario) */}
-                <Grid item xs={12} md={6}>
-                    <AssetLineChart 
-                        title={`情境模擬: ${selectedScenario?.name}`} 
-                        data={rightChartData} 
-                        isLoading={loading} // 傳入 loading 狀態
-                        sx={{ height: '100%' }} 
-                    />
-                </Grid>
-            </Grid>
+                {/* 第二排：左右線圖 */}
+                <Grid container spacing={2} sx={{ width: "100%", mb: 2 }} justifyContent="center" alignItems="stretch">
+                    {/* 左邊：基本設定 (Baseline) */}
+                    <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
+                        <AssetLineChart 
+                            title="基本設定預測 (Baseline)" 
+                            data={leftChartData} 
+                            isLoading={loading}
+                            sx={{ width: '100%', height: '100%' }} 
+                        />
+                    </Grid>
 
-            {/* 第三排：圓餅圖 + 情境卡 */}
-            <Grid container spacing={2} sx={{ width: "100%" }}>
-                <Grid item xs={12} md={4}>
-                    <ExpensePieChart data={simData?.pieChart} sx={{ height: '100%' }} />
+                    {/* 右邊：情境模擬 (Selected Scenario) */}
+                    <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
+                        <AssetLineChart 
+                            title={`情境模擬: ${selectedScenario?.name}`} 
+                            data={rightChartData} 
+                            isLoading={loading}
+                            sx={{ width: '100%', height: '100%' }} 
+                        />
+                    </Grid>
                 </Grid>
 
-                <Grid item xs={12} md={8}>
-                    <Box sx={{ display: 'flex', gap: 2, height: '100%', flexWrap: 'wrap' }}>
-                        {scenarios.map(scenario => (
-                            <Box key={scenario.id} sx={{ flex: '1 1 300px' }}>
-                                <ScenarioCard
-                                    scenario={scenario}
-                                    selectedId={selectedScenario.id}
-                                    onSelect={handleSelect}
-                                    onEdit={handleEdit}
-                                />
-                            </Box>
-                        ))}
-                    </Box>
-                </Grid>
-            </Grid>
+                {/* 第三排：圓餅圖 + 情境卡 */}
+                <Grid container spacing={2} sx={{ width: "100%" }} justifyContent="center" alignItems="flex-start">
+                    <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center' }}>
+                        <ExpensePieChart data={simData?.pieChart} sx={{ width: '100%', height: '100%' }} />
+                    </Grid>
 
-            {/* 編輯 Modal */}
-            <ScenarioFullEditModal
-                open={editOpen}
-                onClose={() => setEditOpen(false)}
-                scenario={editScenario}
-                onSave={handleSaveScenario}
-            />
+                    <Grid item xs={12} md={8}>
+                        <Box sx={{ display: 'flex', gap: 2, height: '100%', flexWrap: 'wrap', justifyContent: 'center' }}>
+                            {scenarios.map(scenario => (
+                                <Box key={scenario.id} sx={{ flex: '1 1 300px', display: 'flex', justifyContent: 'center' }}>
+                                    <ScenarioCard
+                                        scenario={scenario}
+                                        selectedId={selectedScenario.id}
+                                        onSelect={handleSelect}
+                                        onEdit={handleEdit}
+                                    />
+                                </Box>
+                            ))}
+                        </Box>
+                    </Grid>
+                </Grid>
+
+                {/* 編輯 Modal */}
+                <ScenarioFullEditModal
+                    open={editOpen}
+                    onClose={() => setEditOpen(false)}
+                    scenario={editScenario}
+                    onSave={handleSaveScenario}
+                />
+            </Box>
         </Box>
     );
 }
