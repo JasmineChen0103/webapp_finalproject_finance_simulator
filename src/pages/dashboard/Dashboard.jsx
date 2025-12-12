@@ -29,7 +29,7 @@ const scenarios = [
 ];
 export default function Dashboard() {
     const [simData, setSimData] = useState(null);
- const [editOpen, setEditOpen] = React.useState(false);
+    const [editOpen, setEditOpen] = React.useState(false);
     const [editScenario, setEditScenario] = React.useState(null);
     // 預設選第一個
     const [selectedScenario, setSelectedScenario] = React.useState(scenarios[0]);
@@ -69,7 +69,7 @@ export default function Dashboard() {
                     body: JSON.stringify({
                         months: 36,
                         income_monthly: settings.monthlyIncome,
-                        expenses: expensesObj,
+                        expenses: [expensesObj],
                         invest_ratio: 0.2,
                         market_model: {
                             mode: "fixed",
