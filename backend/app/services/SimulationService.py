@@ -36,6 +36,14 @@ def _determine_trend(diff: float) -> Literal["up", "down", "flat"]:
     else:
         return "flat"
 
+def _as_rate(x: Optional[float]) -> Optional[float]:
+    if x is None:
+        return None
+    x = float(x)
+    # 前端用 3.45 表示 3.45% → 0.0345
+    # 若已經是 0.0345 這種小數，就保持不變
+    return x / 100.0 if abs(x) > 1.0 else x
+
 # --- 核心數據模型與邏輯 ---
 
 MarketMode = Literal["fixed", "normal"]
@@ -231,7 +239,11 @@ def run_paths(
                     alpha = np.clip(alpha + float(event.delta), 0.0, 1.0)
                 elif event.type == "market_override" and event.amount is not None:
                     # e.amount 視為「這個月的年化報酬」
-                    monthly_returns[:, idx] = annual_to_monthly_r(event.amount)
+                    ann = float(event.amount)
+                    if abs(ann) > 1.0:
+                        ann /= 100.0
+                    monthly_returns[:, idx] = annual_to_monthly_r(ann)
+
 
         # ---- 4) 現金不足時，自動賣出投資補現金（optional） ----
         if auto_liquidate:
@@ -345,7 +357,7 @@ def simulate_financial_plan(request: SimulationRequest) -> Dict[str, Any]:
     market_core = MarketModelCore(
         mode=request.market_model.mode,
         profile=request.market_model.profile,
-        fixed_annual_return=request.market_model.fixed_annual_return,
+        fixed_annual_return=_as_rate(request.market_model.fixed_annual_return),
         normal_mu=request.market_model.normal_mu,
         normal_sigma=request.market_model.normal_sigma,
         annual_min=request.market_model.annual_min,
