@@ -63,8 +63,7 @@ export default function Dashboard() {
                 invest_ratio_delta: s.invest_ratio_delta,
                 events: s.events
             }));
-
-            const response = await fetch("https://cuddly-lamp-x697jpppv94cprj9-8000.app.github.dev/simulate", {
+            const response = await fetch("http://localhost:8000/simulate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
