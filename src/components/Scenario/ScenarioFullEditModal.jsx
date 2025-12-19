@@ -76,7 +76,7 @@ function ExpenseDeltaSection({ data, onChange, onAdd, onDelete }) {
                             size="small"
                             type="number"
                             label="比例 (Delta)"
-                            value={data[key] * 100}
+                            value={Number((data[key] * 100).toFixed(0))}
                             onChange={(e) => onChange('expenses_delta', key, key, Number(e.target.value) / 100)}
                             InputProps={{
                                 startAdornment: <Typography sx={{ mr: 0.5 }}>+/-</Typography>,
@@ -176,7 +176,7 @@ function EventListSection({ events, onChange, onAdd, onDelete }) {
                                     <TextField 
                                         fullWidth size="small" type="number" 
                                         label={`${event.type === 'income_delta' ? '收入' : '投資比例'} 變動 (delta)`} name="delta" 
-                                        value={event.delta || ''} 
+                                        value={event.delta ? Number((event.delta).toFixed(0)) : ''} 
                                         onChange={(e) => onChange(idx, e.target.name, Number(e.target.value))}
                                         InputProps={{
                                             startAdornment: <Typography sx={{ mr: 0.5 }}>+/-</Typography>,
@@ -341,7 +341,7 @@ export default function ScenarioFullEditModal({ open, onClose, scenario, onSave 
                                 type="number"
                                 label="投資比例變動 (Invest Ratio Delta)"
                                 name="invest_ratio_delta"
-                                value={editedScenario.invest_ratio_delta * 100}
+                                value={Number((editedScenario.invest_ratio_delta * 100).toFixed(0))}
                                 onChange={(e) => setEditedScenario(prev => ({ 
                                     ...prev, 
                                     invest_ratio_delta: Number(e.target.value) / 100 
