@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; // 不需要 useRef
+import React, { useState, useEffect } from "react";
 import { Box, Grid } from "@mui/material";
 import StatCards from "../../components/Dashboard/StatCards";
 import AssetLineChart from "../../components/Dashboard/AssetLineChart";
@@ -34,8 +34,7 @@ export default function Dashboard() {
     
     // 儲存 API 回傳的完整資料
     const [simData, setSimData] = useState(null);
-    // 儲存基本財務設定 (避免每次都要重抓)
-    const [baseSettings, setBaseSettings] = useState(null);
+    // 已移除 baseSettings，改為每次都重抓
     // Loading 狀態
     const [loading, setLoading] = useState(false);
 
@@ -100,9 +99,8 @@ export default function Dashboard() {
             if (!user?.user_id) return;
 
             const settings = await getFinancialSetting(user.user_id);
-            setBaseSettings(settings);
-
-            // 第一次執行，使用初始 scenarios
+            console.log('[User Setting]', settings);
+            // 每次都直接用最新 settings 執行模擬
             await runSimulation(settings, scenarios);
         };
         initDashboard();
@@ -137,10 +135,11 @@ export default function Dashboard() {
 
         setEditOpen(false);
 
-        // 4. 直接把「新的陣列 (newScenarios)」傳給 API
-        // 這樣就不需要 useRef，也不會有 State 更新的時間差問題
-        if (baseSettings) {
-             await runSimulation(baseSettings, newScenarios);
+        // 4. 重新抓最新設定再執行模擬
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (user?.user_id) {
+            const settings = await getFinancialSetting(user.user_id);
+            await runSimulation(settings, newScenarios);
         }
     };
 
