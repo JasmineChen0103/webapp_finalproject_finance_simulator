@@ -72,8 +72,8 @@ export default function Dashboard() {
                     expenses: expensesArray,
                     invest_ratio: settings.investRatio || 0.2,
                     market_model: {
-                        mode: "fixed",
-                        profile: "custom",
+                        mode: settings.fixedReturn && settings.fixedReturn > 0 ? "fixed" : "normal",
+                        profile: settings.riskMode === "high" ? "high_risk" : settings.riskMode === "low" ? "low_risk" : "custom",
                         fixed_annual_return: settings.fixedReturn || 0.05
                     },
                     scenarios: apiScenarios, // 這裡用傳入的參數，而不是 State
