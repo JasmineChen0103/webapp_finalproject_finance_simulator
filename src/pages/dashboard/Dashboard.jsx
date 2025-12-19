@@ -20,7 +20,7 @@ const INITIAL_SCENARIOS = [
     {
         id: 2,
         name: "買車計畫",
-        description: "模擬額外支出的影響",
+        description: "模擬額外支出(買車)",
         expenses_delta: {},
         invest_ratio_delta: 0,
         events: []
@@ -208,10 +208,18 @@ export default function Dashboard() {
                         <ExpensePieChart data={simData?.pieChart} sx={{ width: '100%', height: '100%' }} />
                     </Grid>
 
-                    <Grid item xs={12} md={8}>
-                        <Box sx={{ display: 'flex', gap: 2, height: '100%', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <Grid item xs={12} md={8} sx={{ height: 450 }}>
+                        <Box sx={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            gap: 2,
+                            height: '100%',
+                            overflowX: 'auto',
+                            alignItems: 'stretch',
+                            py: 1
+                        }}>
                             {scenarios.map(scenario => (
-                                <Box key={scenario.id} sx={{ flex: '1 1 300px', display: 'flex', justifyContent: 'center' }}>
+                                <Box key={scenario.id} sx={{ minWidth: 300, display: 'flex', justifyContent: 'center', alignItems: 'stretch', height: '100%' }}>
                                     <ScenarioCard
                                         scenario={scenario}
                                         selectedId={selectedScenario.id}

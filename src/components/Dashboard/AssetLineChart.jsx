@@ -92,7 +92,7 @@ export default function AssetLineChart({ title = "資產增長趨勢", data, sx,
     ];
 
     return (
-        <Card sx={{ ...sx, p: 0, height: "100%" }}>
+        <Card sx={{ ...sx, p: 0, height: "100%" , width: "550px"}}>
             {/* 這裡顯示情境名稱做為副標題，確認我們看的是對的圖 */}
             <CardHeader title={title} subheader={targetScenario.name} /> 
             <CardContent>
