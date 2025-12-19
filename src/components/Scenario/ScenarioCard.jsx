@@ -38,8 +38,8 @@ export default function ScenarioCard({ scenario, selectedId, onSelect, onEdit })
             sx={{
                 cursor: 'pointer',
                 transition: 'all 0.3s',
-                minWidth: 275,
-                height: '100%',
+                minWidth: 300,
+                minHeight: 435,
                 borderColor: isSelected ? 'primary.main' : 'grey.300',
                 boxShadow: isSelected ? 4 : 1,
                 position: 'relative',

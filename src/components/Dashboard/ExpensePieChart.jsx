@@ -51,7 +51,7 @@ export default function ExpensePieChart({ title = "每月支出分佈", data, sx
     };
 
     return (
-        <Card sx={{ ...sx, p: 0, height: "100%" }}>
+        <Card sx={{ ...sx, p: 0, height: "100%", minWidth: "500px" }}>
             <CardHeader title={title} /> 
             <CardContent>
                 <Box sx={{ height: 300 }}>

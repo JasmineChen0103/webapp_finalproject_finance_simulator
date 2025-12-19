@@ -180,9 +180,9 @@ export default function Dashboard() {
                 </Grid>
 
                 {/* 第二排：左右線圖 */}
-                <Grid container spacing={2} sx={{ width: "100%", mb: 2 }} justifyContent="center" alignItems="stretch">
+                <Grid container spacing={2} sx={{ width: "100%", mb: 2 }} display="flex" justifyContent="center" alignItems="stretch">
                     {/* 左邊：基本設定 (Baseline) */}
-                    <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Grid item xs={12} md={6} sx={{  justifyContent: 'center' }}>
                         <AssetLineChart 
                             title="基本設定預測 (Baseline)" 
                             data={leftChartData} 
@@ -203,15 +203,15 @@ export default function Dashboard() {
                 </Grid>
 
                 {/* 第三排：圓餅圖 + 情境卡 */}
-                <Grid container spacing={2} sx={{ width: "100%" }} justifyContent="center" alignItems="flex-start">
-                    <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center' }}>
+                <Grid container spacing={2} sx={{ width: "100%" }} justifyContent="center" alignItems="stretch">
+                    <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center', height: '100%' }}>
                         <ExpensePieChart data={simData?.pieChart} sx={{ width: '100%', height: '100%' }} />
                     </Grid>
 
-                    <Grid item xs={12} md={8}>
-                        <Box sx={{ display: 'flex', gap: 2, height: '100%', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <Grid item xs={12} md={8} sx={{ height: '100%', display: 'flex', alignItems: 'stretch' }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, height: '100%', flexWrap: 'wrap', justifyContent: 'flex-start', alignItems: 'stretch', width: '100%' }}>
                             {scenarios.map(scenario => (
-                                <Box key={scenario.id} sx={{ flex: '1 1 300px', display: 'flex', justifyContent: 'center' }}>
+                                <Box key={scenario.id} sx={{ flex: '0 1 300px', minWidth: 300, maxWidth: 400, display: 'flex' }}>
                                     <ScenarioCard
                                         scenario={scenario}
                                         selectedId={selectedScenario.id}
