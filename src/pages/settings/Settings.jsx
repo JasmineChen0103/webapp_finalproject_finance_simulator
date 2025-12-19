@@ -14,46 +14,106 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useOnboarding } from "../../context/OnboardingContext";
+import { useAuth } from "../../context/AuthContext";
+import { getFinancialSetting, saveFinancialSetting } from "../../api/financialSetting";
 
 export default function Settings() {
   const onboarding = useOnboarding();
   const { data, update } = onboarding;
+  const { user } = useAuth();
 
-  // 只印一次，避免洗 console
-  useEffect(() => {
-    console.log("[Settings] onboarding =", onboarding);
-  }, []);
-
-  /* ================= Basic ================= */
+  /* ================= State 宣告 ================= */
   const [basic, setBasic] = useState({
     totalAsset: data.totalAsset || "",
     monthlyIncome: data.monthlyIncome || "",
   });
 
-  /* ================= Expenses ================= */
   const [expenses, setExpenses] = useState(data.expenses || []);
 
-  /* ================= Investments ================= */
   const [investments, setInvestments] = useState(
     data.investments?.length ? data.investments : [{ type: "", amount: "" }]
   );
 
-  /* ================= Risk (單一) ================= */
   const [riskHigh, setRiskHigh] = useState(data.riskMode === "high");
   const [riskLow, setRiskLow] = useState(data.riskMode === "low");
   const [fixedReturn, setFixedReturn] = useState(data.fixedReturn || "");
 
-  /* ================= Save ================= */
-  const handleSave = () => {
-    update({
-      ...basic,
-      expenses,
-      investments,
-      riskMode: riskHigh ? "high" : riskLow ? "low" : "fixed",
-      fixedReturn: riskHigh || riskLow ? null : fixedReturn || null,
-    });
+  /* ================= 從後端載入資料 ================= */
+  useEffect(() => {
+    const loadFinancialSetting = async () => {
+      if (!user?.user_id) return;
 
-    alert("Settings saved");
+      try {
+        const result = await getFinancialSetting(user.user_id);
+        console.log("[Settings] Loaded from backend:", result);
+        
+        // 更新 basic
+        setBasic({
+          totalAsset: result.totalAsset || "",
+          monthlyIncome: result.monthlyIncome || "",
+        });
+        
+        // 更新 expenses
+        setExpenses(result.expenses || []);
+        
+        // 更新 investments
+        setInvestments(result.investments?.length ? result.investments : [{ type: "", amount: "" }]);
+        
+        // 更新 risk
+        setRiskHigh(result.riskMode === "high");
+        setRiskLow(result.riskMode === "low");
+        setFixedReturn(result.fixedReturn || "");
+      } catch (error) {
+        console.error("[Settings] Failed to load:", error);
+        // 如果後端沒有資料，使用預設值
+      }
+    };
+
+    loadFinancialSetting();
+  }, [user?.user_id]);
+
+  // Debug log
+  useEffect(() => {
+    console.log("[Settings] onboarding =", onboarding);
+    console.log("[Settings] user =", user);
+  }, []);
+
+  /* ================= Save ================= */
+  const handleSave = async () => {
+    if (!user?.user_id) {
+      alert("User not logged in");
+      return;
+    }
+
+    try {
+      const payload = {
+        user_id: user.user_id,
+        totalAsset: basic.totalAsset,
+        monthlyIncome: basic.monthlyIncome,
+        expenses,
+        investments,
+        riskMode: riskHigh ? "high" : riskLow ? "low" : "fixed",
+        fixedReturn: riskHigh || riskLow ? null : fixedReturn || null,
+      };
+
+      console.log("[Settings] Saving to backend:", payload);
+      const result = await saveFinancialSetting(payload);
+      console.log("[Settings] Save result:", result);
+
+      // 同時更新 onboarding context
+      update({
+        ...basic,
+        expenses,
+        investments,
+        riskMode: riskHigh ? "high" : riskLow ? "low" : "fixed",
+        fixedReturn: riskHigh || riskLow ? null : fixedReturn || null,
+      });
+
+      alert("Settings saved successfully");
+    } catch (error) {
+      console.error("[Settings] Save failed:", error);
+      alert(`Failed to save settings: ${error.message}`);
+    }
   };
 
   /* ================= Render ================= */
