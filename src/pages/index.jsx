@@ -17,7 +17,7 @@ export default function Index() {
             }}
         >
             <Typography variant="h4" fontWeight={600}>
-                Welcome to Finance App
+                Welcome to FinVision
             </Typography>
 
             <Button variant="contained" onClick={() => navigate("/login")}>
