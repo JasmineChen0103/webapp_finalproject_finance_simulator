@@ -21,9 +21,28 @@ const INITIAL_SCENARIOS = [
         id: 2,
         name: "買車計畫",
         description: "模擬額外支出(買車)",
-        expenses_delta: {},
-        invest_ratio_delta: 0,
-        events: []
+        // 長期固定支出調整
+        expenses_delta: {
+            Rent: -0.05 // -5%
+        },
+        // 長期投資比例調整
+        invest_ratio_delta: -0.05, // -5%
+        // 事件列表
+        events: [
+            {
+                month_idx: 36,
+                type: "expense",
+                label: "買車頭期款",
+                amount: 1000000
+            },
+            {
+                month_idx: 37,
+                end_month_idx: 62,
+                type: "expense",
+                label: "車貸",
+                amount: 30000
+            }
+        ]
     }
 ];
 
@@ -31,7 +50,7 @@ export default function Dashboard() {
     // --- State 定義 ---
     const [scenarios, setScenarios] = useState(INITIAL_SCENARIOS);
     const [selectedScenario, setSelectedScenario] = useState(INITIAL_SCENARIOS[0]);
-    
+
     // 儲存 API 回傳的完整資料
     const [simData, setSimData] = useState(null);
     // 已移除 baseSettings，改為每次都重抓
@@ -121,7 +140,7 @@ export default function Dashboard() {
     // --- 關鍵修正：儲存並立即更新 ---
     const handleSaveScenario = async (updatedScenario) => {
         // 1. 產生新的情境陣列
-        const newScenarios = scenarios.map(s => 
+        const newScenarios = scenarios.map(s =>
             s.id === updatedScenario.id ? updatedScenario : s
         );
 
@@ -145,7 +164,7 @@ export default function Dashboard() {
 
     // --- 資料篩選邏輯 ---
     const chartSource = simData?.lineChart;
-    
+
     // 檢查有沒有拿到線圖資料
     const hasData = chartSource && chartSource.scenarios && chartSource.scenarios.length > 0;
 
@@ -153,7 +172,7 @@ export default function Dashboard() {
     // 我們保留 categories (月份)，但把 scenarios 陣列過濾到只剩一筆
     const leftChartData = hasData ? {
         ...chartSource,
-        scenarios: [chartSource.scenarios[0]] 
+        scenarios: [chartSource.scenarios[0]]
     } : null;
 
     // 右圖：根據 selectedScenario.name 找對應的資料
@@ -182,21 +201,21 @@ export default function Dashboard() {
                 <Grid container spacing={2} sx={{ width: "100%", mb: 2 }} justifyContent="center" alignItems="stretch">
                     {/* 左邊：基本設定 (Baseline) */}
                     <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
-                        <AssetLineChart 
-                            title="基本設定預測 (Baseline)" 
-                            data={leftChartData} 
+                        <AssetLineChart
+                            title="基本設定預測 (Baseline)"
+                            data={leftChartData}
                             isLoading={loading}
-                            sx={{ width: '100%', height: '100%' }} 
+                            sx={{ width: '100%', height: '100%' }}
                         />
                     </Grid>
 
                     {/* 右邊：情境模擬 (Selected Scenario) */}
                     <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
-                        <AssetLineChart 
-                            title={`情境模擬: ${selectedScenario?.name}`} 
-                            data={rightChartData} 
+                        <AssetLineChart
+                            title={`情境模擬: ${selectedScenario?.name}`}
+                            data={rightChartData}
                             isLoading={loading}
-                            sx={{ width: '100%', height: '100%' }} 
+                            sx={{ width: '100%', height: '100%' }}
                         />
                     </Grid>
                 </Grid>
