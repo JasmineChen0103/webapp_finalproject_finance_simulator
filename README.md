@@ -13,7 +13,7 @@ Database：MongoDB Atlas
 
 
 # 三、執行方式（Web 系統執行檔）
-##1. 啟動後端（Backend）— Port 8000
+## 1. 啟動後端（Backend）— Port 8000
 
 後端位於 backend/app，需先設定 MongoDB 連線字串。
 
