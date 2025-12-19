@@ -25,9 +25,9 @@ Step 2：設定 MongoDB 環境變數（每次重啟 Terminal 都要設定）
 
 以下三種方式 擇一即可：
 
-    1. `export uri="mongodb+srv://webappgroup5:webappgroup5@cluster0.faxoia9.mongodb.net/"`
-    2. `set MONGODB_URI=mongodb+srv://webappgroup5:webappgroup5@cluster0.faxoia9.mongodb.net/`
-    3. `python -m uvicorn main:app --reload`
+    1. `export uri="mongodb+srv://webappgroup5:webappgroup5@cluster0.faxoia9.mongodb.net/"
+    2. set MONGODB_URI=mongodb+srv://webappgroup5:webappgroup5@cluster0.faxoia9.mongodb.net/
+    3. python -m uvicorn main:app --reload`
 
 
 Step 3：啟動後端服務
