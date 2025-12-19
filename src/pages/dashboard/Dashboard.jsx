@@ -20,7 +20,7 @@ const INITIAL_SCENARIOS = [
     {
         id: 2,
         name: "買車計畫",
-        description: "模擬額外支出的影響",
+        description: "模擬額外支出(買車)",
         expenses_delta: {},
         invest_ratio_delta: 0,
         events: []
