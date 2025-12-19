@@ -188,14 +188,19 @@ export default function Dashboard() {
         <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}>
             {/* 中心化容器，限制最大寬度使版面置中且不會拉太寬 */}
             <Box sx={{ width: '100%', maxWidth: 1200 }}>
-                {/* 第一排：StatCards */}
-                <Grid container spacing={2} sx={{ width: "100%", mb: 2 }} justifyContent="center">
-                    <Grid item xs={12}>
-                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                        {/* 第一排：StatCards */}
+                        <Box
+                            sx={{
+                                width: '100%',
+                                mb: 2,
+                                overflowX: 'auto',
+                                display: 'flex',
+                                alignItems: 'stretch',
+                                py: 1,
+                            }}
+                        >
                             <StatCards data={simData?.statCards} />
                         </Box>
-                    </Grid>
-                </Grid>
 
                 {/* 第二排：左右線圖 */}
                 <Grid container spacing={2} sx={{ width: "100%", mb: 2 }} justifyContent="center" alignItems="stretch">
@@ -220,7 +225,6 @@ export default function Dashboard() {
                     </Grid>
                 </Grid>
 
-                {/* 第三排：圓餅圖 + 情境卡 */}
                 {/* 第三排：圓餅圖 + 情境卡 */}
                 <Grid container spacing={2} sx={{ width: "100%" }} justifyContent="center" alignItems="flex-start">
                     <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center' }}>

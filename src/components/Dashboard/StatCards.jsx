@@ -5,7 +5,7 @@ import {
     CardContent,
     Stack,
     Typography,
-    Grid,
+    Box,
 } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -85,11 +85,9 @@ export default function StatCards({ data }) {
     // 如果沒有數據，顯示空狀態
     if (!data || !Array.isArray(data) || data.length === 0) {
         return (
-            <Grid container spacing={3}>
-                <Grid item xs={12}>
-                    <Typography color="text.secondary">等待統計數據中...</Typography>
-                </Grid>
-            </Grid>
+            <Box sx={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
+                <Typography color="text.secondary">等待統計數據中...</Typography>
+            </Box>
         );
     }
 
@@ -102,11 +100,11 @@ export default function StatCards({ data }) {
     ];
 
     return (
-        <Grid container spacing={3}>
+        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, width: '100%' }}>
             {data.map((stat, index) => {
                 const IconComponent = iconMap[index] || AttachMoneyIcon;
                 return (
-                    <Grid item xs={12} sm={6} md={2.4} key={index}>
+                    <Box key={index} sx={{ minWidth: 260, flex: '0 0 auto' }}>
                         <StatCard
                             title={stat.title}
                             value={stat.value}
@@ -115,11 +113,11 @@ export default function StatCards({ data }) {
                             subText={stat.subText}
                             diff={stat.diff}
                             trend={stat.trend || 'none'}
-                            sx={{ height: "100%" }} 
+                            sx={{ height: 160 }}
                         />
-                    </Grid>
+                    </Box>
                 );
             })}
-        </Grid>
+        </Box>
     );
 }
